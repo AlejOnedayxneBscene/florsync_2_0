@@ -1,0 +1,94 @@
+
+.menu-body {
+    background-color: #f0f2f5;
+    color: black; 
+    font-family: Arial, sans-serif;
+    margin: 0; 
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.encabezado-ventas {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    padding: 20px;
+    background-color: #2A322C;
+    color: #019C18;
+    width: 100vw; 
+    border-radius: 10px;
+    margin-bottom: 20px;
+}
+
+.buscador {
+    width: 80%;
+    max-width: 500px;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 5px;
+    border: none;
+}
+
+.filtros-tipos {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.filtro-checkbox {
+    color: white;
+    font-size: 14px;
+}
+
+.ventas-container {
+    display: flex;
+    justify-content: center;
+}
+
+.productos-container {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    margin: auto;
+}
+
+.producto-card {
+    background-color: #333;
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+}
+
+.realizar-venta {
+    background-color: #019C18; /* Color verde */
+    color: white; /* Letra blanca */
+    font-size: 18px; /* Letra un poco más grande */
+    padding: 12px 24px; /* Más espacio alrededor del texto */
+    border-radius: 12px; /* Bordes redondeados */
+    border: none; /* Sin borde */
+    cursor: pointer; /* Cambio de cursor */
+    transition: background-color 0.3s ease; /* Transición suave */
+}
+
+.realizar-venta:hover {
+    background-color: #017C10; /* Verde más oscuro al pasar el mouse */
+}
+
+.boton-anadir-carrito {
+    background-color: #019C18; /* Color verde */
+    color: white; /* Letra blanca */
+    font-size: 16px; /* Tamaño de letra */
+    padding: 10px 20px; /* Espaciado del botón */
+    border-radius: 12px; /* Bordes redondeados */
+    border: none; /* Sin borde */
+    cursor: pointer; /* Cambia el cursor */
+    transition: background-color 0.3s ease; /* Transición suave */
+}
+
+.boton-anadir-carrito:hover {
+    background-color: #017C10; /* Verde más oscuro al pasar el mouse */
+}
+

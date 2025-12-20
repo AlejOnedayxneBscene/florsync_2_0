@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio sesion</title>
+    <link rel="stylesheet" type="text/css" href="{% static 'css/styles.css' %}">
+    <link href="https://fonts.google.com/specimen/Jockey+One" rel="stylesheet">
+    <script type="text/javascript" async
+        src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js">
+    </script>
+</head>
+<body>
+    <div>
+        <div class="imagenes">
+            <img src="/static/images/girasoles.png"  class="img1">
+            <img src="/static/images/img_rosas_rojas.png"  class="img2">
+            <img src="/static/images/img_rosas_rosadas.png"  class="img3">
+        </div>
+        
+        <div class="login-section">
+            <h2>Iniciar sessión</h2>
+            <form>
+                <input type="text" id="username" name="username" placeholder="Digite su usuario" required>
+                <input type="text" id="username" name="username" placeholder="Digite su contraseña" required>
+
+                <button type="submit">INICIAR SESIÓN</button>
+
+
+            </form>
+        </div>
+    </div>
+    
+    <label class="label-corner">FlorSync</label>
+
+
+</body>
+</html>

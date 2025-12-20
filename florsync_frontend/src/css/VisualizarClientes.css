@@ -1,0 +1,102 @@
+/* --- ESTILO GENERAL --- */
+.visualizarCliente-body {
+  background-color: white;
+  color: black;
+  font-family: Arial, sans-serif;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100vh;
+  justify-content: flex-start;
+}
+
+.encabezado-cliente {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  height: 150px;
+  background-color: #2A322C;
+  color: #019C18;
+  width: 100vw;
+  margin-bottom: 20px;
+  font-family: "Times New Roman", Times, serif;
+  font-size: 32px;
+  font-weight: 400; 
+  border-radius: 0px;
+}
+
+.search-container {
+  width: 80%;
+  max-width: 500px;
+  margin: 20px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.search-box {
+  width: 100%;
+  padding: 10px;
+  font-size: 16px;
+  border-radius: 20px;
+  border: none;
+  text-align: center;
+  background-color: #ddd;
+  outline: none;
+}
+
+.clientes-container {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+.table {
+  width: 90vw; 
+  max-width: 1500px;
+  background-color: #2A322C; 
+  color: white;
+  border-radius: 0px;
+  margin-top: 25px; 
+  box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.3);
+  font-size: 18px; 
+}
+
+.table td {
+  padding: 12px;
+  text-align: left;
+  font-size: 18px; 
+}
+
+.table tr {
+  border-bottom: 1px solid white;
+}
+
+/* --- NUEVO: ESTILO DEL BOTÓN "ANTERIOR" --- */
+.volver-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 20px;
+}
+
+.btn-volver {
+  padding: 10px 20px;
+  background-color: #019C18; /* Verde del encabezado */
+  color: white;
+  border: none;
+  border-radius: 5px;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.btn-volver:hover {
+  background-color: #016F12; /* Un verde más oscuro para el hover */
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 600px) {
+  .table {
+      width: 100%;
+  }
+}

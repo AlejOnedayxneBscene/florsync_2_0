@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:15
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: florsync123
+      POSTGRES_DB: FlorsyncBD
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+    build: ./florsync_backend  
+    restart: always
+    depends_on:
+      - db
+    environment:
+      DATABASE_URL: postgres://floruser:florsync123@db:5432/FlorsyncBD  
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./florsync_backend:/app  
+    command: >
+      sh -c "python manage.py migrate &&
+             python manage.py runserver 0.0.0.0:8000"
+
+  frontend:
+    build: ./florsync_backend/florsync_frontend  
+    restart: always
+    depends_on:
+      - backend
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./florsync_backend/florsync_frontend:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+    command: ["npm", "run", "dev", "--", "--host"]
+
+volumes:
+  postgres_data: {}

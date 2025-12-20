@@ -1,0 +1,66 @@
+
+
+.menu-body {
+    background-color: white; /* Fondo blanco */
+    color: black; /* Color del texto */
+    font-family: Arial, sans-serif;
+    margin: 0; /* Eliminar márgenes */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.menu-header {
+    background-color: #2A322C;
+    color: #019C18;  
+    text-align: center;  
+    padding: 10px;  
+    font-size: 18px;  
+    font-style: italic;  
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%; 
+    z-index: 1000; 
+}
+
+
+    .menu-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 30px;
+        padding-top: 180px;
+    }
+    
+    .menu-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between; /* Distribuye texto e imagen */
+        background-color: #2A322C;
+        color: white;
+        padding: 15px 20px;
+        border-radius: 10px;
+        width: 1500px; /* Hace el botón más ancho */
+        height: 90px; /* Ajusta la altura */
+        font-size: 40px;
+        cursor: pointer;
+        transition: 0.3s;
+    }
+    
+    .menu-item span {
+        flex-grow: 1; /* Ocupa todo el espacio disponible */
+        text-align: left; /* Centra el texto */
+    }
+    
+    .menu-item img {
+        width: 70px; /* Ajusta el tamaño del icono */
+        height: 70px;
+        margin-right: 50px;
+    }
+    
+
+.menu-item:hover {
+    background-color: #444;  
+    
+}

@@ -1,0 +1,112 @@
+.carrito-body {
+    background-color: white; /* Fondo blanco */
+    color: black; /* Color del texto */
+    font-family: Arial, sans-serif;
+    margin: 0; /* Eliminar márgenes */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-top: 100px; /* Deja espacio fijo debajo del header */
+
+}
+
+.carrito-header {
+    background-color: #2A322C;
+    color: #019C18;
+    text-align: center;
+    padding: 20px;
+    font-size: 32px;
+    font-style: italic;
+    font-weight: bold;
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1000;
+}
+
+
+.carrito-container {
+    margin-top: 0; /* Elimina el margen aquí */
+    text-align: center;
+    padding: 20px;
+    background-color: #fff;
+}
+
+.producto-carrito {
+    margin-top: 20px;
+    background-color: #2A322C;
+    color: white;
+    padding: 15px;
+    margin: 10px auto;
+    width: 80%;
+    border-radius: 5px;
+}
+
+.producto-header {
+    display: flex;
+    justify-content: space-between;
+    font-weight: bold;
+}
+
+.producto-info {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+}
+
+select {
+    padding: 5px;
+}
+
+.cliente-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.cliente-info input {
+    background-color: lightgray;
+    border: none;
+    padding: 10px;
+    width: 200px;
+    text-align: center;
+    border-radius: 5px;
+}
+
+.boton-realizar-venta {
+    background-color: green;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    margin-top: 15px;
+    font-size: 1rem;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+.boton-realizar-venta:hover {
+    background-color: darkgreen;
+}
+
+.total-final {
+    margin-top: 20px;
+    padding: 15px;
+    background-color: #2ecc71; /* Verde llamativo */
+    color: white;
+    font-size: 1.5rem;
+    text-align: center;
+    font-weight: bold;
+    border-radius: 10px;
+    box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.total-final h2 {
+    margin: 0;
+}
+
+.total-final span {
+    font-weight: bold;
+}

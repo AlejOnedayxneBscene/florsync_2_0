@@ -1,0 +1,118 @@
+.formulario-body {
+    background-color: white;
+    color: black;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    height: 100vh;
+    justify-content: center; /* Centra mejor todo */
+}
+
+.formulario-header {
+    background-color: #2A322C;
+    color: #019C18;  
+    text-align: center;  
+    padding: 10px;  
+    font-size: 18px;  
+    font-style: italic;  
+    position: fixed; 
+    top: 0;
+    left: 0;
+    width: 100%; 
+    z-index: 1000; 
+}
+
+.formulario-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    width: 100%;
+    padding-top: 120px; 
+    padding: 20px; /* Mayor espacio para evitar solapamientos */
+    margin-top: 40px;
+}
+
+.formulario-form {
+    display: flex;
+    flex-direction: column;
+    align-items: center; /* Centra los elementos dentro del formulario */
+    gap: 20px;
+    width: 1500px; /* Se ajusta mejor */
+    max-width: 90%;
+    background-color: white;
+    padding: 40px;
+    border-radius: 15px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+}
+
+.formulario-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 1500px;
+    align-items: center; /* Asegura que todo esté alineado */
+}
+
+
+.formulario-item input {
+    width: 100%; /* Se asegura que no quede pegado a la derecha */
+    max-width: 1300px; /* Para que no se estire demasiado en pantallas grandes */
+    padding: 20px;
+    font-size: 18px;
+    text-align: center;
+    background-color: #d3d3d3;
+    border: none;
+    border-radius: 10px;
+    transition: all 0.3s ease-in-out;
+    margin-bottom: 20px;
+}
+
+.formulario-item input:focus {
+    background-color: white;
+    border: 3px solid blue;
+    outline: none;
+}
+
+/* Botón mejorado */
+.formulario-button {
+    width: 100%; /* Hace que el botón tenga el mismo ancho que los inputs */
+    max-width: 1500px;
+    padding: 15px 25px;
+    background-color: #2A322C;
+    color: white;
+    font-size: 18px;
+    font-weight: bold;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: background 0.3s, transform 0.2s;
+}
+
+.formulario-button:hover {
+    background-color: #444;
+    transform: scale(1.05);
+}
+.btn-modificar {
+    background-color: black;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.btn-volver {
+    background-color: green;
+    color: white;
+    padding: 10px 15px;
+    border: none;
+    cursor: pointer;
+    font-size: 18px;
+    width: 100%;
+    margin-top: 10px;
+}
