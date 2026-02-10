@@ -1,76 +1,102 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
+import api from "../api/axios"; // tu instancia Axios con interceptores
 
 const AuthContext = createContext();
-const INACTIVITY_LIMIT = 30 * 60 * 1000; // 2 minutos
+const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 min
 
 export const AuthProvider = ({ children }) => {
-  const [isAuthenticated, setIsAuthenticated] = useState(null); // null indica que aún estamos verificando
-  const [isAuthLoaded, setIsAuthLoaded] = useState(false); // Indica si la autenticación ha sido verificada
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isAuthLoaded, setIsAuthLoaded] = useState(false);
   const inactivityTimer = useRef(null);
 
   const resetInactivityTimer = () => {
-    if (inactivityTimer.current) {
-      clearTimeout(inactivityTimer.current);
-    }
+    if (inactivityTimer.current) clearTimeout(inactivityTimer.current);
+
     inactivityTimer.current = setTimeout(() => {
-      alert("La sesión ha expirado por inactividad.");
+      alert("La sesión ha expirado por inactividad");
       logout();
     }, INACTIVITY_LIMIT);
   };
 
   const startTracking = () => {
-    window.addEventListener("mousemove", resetInactivityTimer);
-    window.addEventListener("keydown", resetInactivityTimer);
-    window.addEventListener("click", resetInactivityTimer);
-    window.addEventListener("scroll", resetInactivityTimer);
+    ["mousemove", "keydown", "click", "scroll"].forEach((event) =>
+      window.addEventListener(event, resetInactivityTimer)
+    );
   };
 
   const stopTracking = () => {
-    window.removeEventListener("mousemove", resetInactivityTimer);
-    window.removeEventListener("keydown", resetInactivityTimer);
-    window.removeEventListener("click", resetInactivityTimer);
-    window.removeEventListener("scroll", resetInactivityTimer);
+    ["mousemove", "keydown", "click", "scroll"].forEach((event) =>
+      window.removeEventListener(event, resetInactivityTimer)
+    );
     clearTimeout(inactivityTimer.current);
   };
 
-  useEffect(() => {
-    const storedAuth = localStorage.getItem("isAuthenticated");
+  // 🔐 Verificar sesión al cargar la app
+ useEffect(() => {
+  const checkAuth = async () => {
+    const access = localStorage.getItem("access");
+    const refresh = localStorage.getItem("refresh");
 
-    if (storedAuth === "true") {
-      setIsAuthenticated(true);
-    } else {
+    if (!access || !refresh) {
       setIsAuthenticated(false);
-    }
-    setIsAuthLoaded(true); // Una vez se haya verificado el estado, cambiamos el estado de carga
-  }, []);
-
-  useEffect(() => {
-    if (isAuthenticated) {
-      resetInactivityTimer();
-      startTracking();
-    } else {
-      stopTracking();
+      setIsAuthLoaded(true);
+      return;
     }
 
-    return () => stopTracking(); // Limpieza al desmontar
-  }, [isAuthenticated]);
-
-  const login = () => {
-    setIsAuthenticated(true);
-    localStorage.setItem("isAuthenticated", "true");
-    resetInactivityTimer();
-    startTracking();
+    try {
+      // si access expiró, interceptor lo refresca solo
+      await api.get("/usuarios/me/");
+      setIsAuthenticated(true);
+    } catch (err) {
+      setIsAuthenticated(false);
+      localStorage.removeItem("access");
+      localStorage.removeItem("refresh");
+    } finally {
+      setIsAuthLoaded(true);
+    }
   };
 
-  const logout = () => {
-    setIsAuthenticated(false);
-    localStorage.removeItem("isAuthenticated");
-    clearTimeout(inactivityTimer.current);
-    stopTracking();
-  };
+  checkAuth();
+}, []);
+
+
+
+useEffect(() => {
+  if (!isAuthenticated) return;
+
+  const interval = setInterval(async () => {
+    try {
+      await api.get("/usuarios/me/");
+    } catch (err) {
+      // servidor caído o token inválido
+      logout();
+    }
+  }, 10000); // 10 segundos (puedes poner 30000 = 30s)
+
+  return () => clearInterval(interval);
+}, [isAuthenticated]);
+
+const login = (access, refresh) => {
+  localStorage.setItem("access", access);
+  localStorage.setItem("refresh", refresh);
+
+  setIsAuthenticated(true);
+  resetInactivityTimer();
+  startTracking();
+};
+
+const logout = () => {
+  setIsAuthenticated(false);
+  stopTracking();
+  localStorage.removeItem("access");
+  localStorage.removeItem("refresh");
+  window.location.href = "/login";
+};
 
   return (
-    <AuthContext.Provider value={{ isAuthenticated, login, logout, isAuthLoaded }}>
+    <AuthContext.Provider
+      value={{ isAuthenticated, login, logout, isAuthLoaded }}
+    >
       {children}
     </AuthContext.Provider>
   );

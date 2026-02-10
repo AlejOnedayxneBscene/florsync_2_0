@@ -1,19 +1,22 @@
 function Title({ text, className = "", ...rest }) {
   return (
-    <h2
-      className={` 
-        font-bold 
-        text-right
+    <h3
+      className={`
+        font-bold
+        text-center
         text-[80px]
-        font-jockey
-        ${className}`
-
-    }
-     style={{ fontFamily: '"Jockey One", sans-serif' }}
-      {...rest} 
+        p-2
+        text-white
+        tracking-wide
+        drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]
+        whitespace-nowrap
+        ${className}
+      `}
+      style={{ fontFamily: '"Jockey One", sans-serif' }}
+      {...rest}
     >
-      {text} 
-    </h2>
+      {text}
+    </h3>
   );
 }
 

@@ -3,3 +3,15 @@
 body {
   font-family: 'Jockey One', sans-serif;
 }
+
+@layer components {
+  /* Dot normal (inactivo) */
+  .slick-dots li div {
+    @apply w-3 h-3 bg-white rounded-full opacity-40 transition-opacity;
+  }
+
+  /* Dot activo */
+  .slick-dots li.slick-active div {
+    @apply opacity-80;
+  }
+}

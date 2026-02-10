@@ -93,11 +93,7 @@ const VentasMostrar = () => {
 
   return (
     <div className="ventas-container">
-      <div className="ventas-header">
-        <h1 className="titulo">
-          Historial de <span>Ventas</span>
-        </h1>
-      </div>
+
 
       <div className="filtro-fecha">
         <input

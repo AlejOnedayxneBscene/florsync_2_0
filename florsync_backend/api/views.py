@@ -4,7 +4,7 @@ from .models import Usuarios
 from .models import Venta
 from .models import DetalleVenta
 from .models import Clientes, Producto
-from .serializers import ClienteSerializer, ProductoSerializer
+from .serializers import ClienteSerializer
 from .serializers import UsuariosSerializer
 from rest_framework import status
 from django.db import transaction
@@ -384,3 +384,34 @@ def obtener_informe(request, tipo):
 
     except Exception as e:
         return Response({'error': str(e)}, status=500)
+    
+from .models import Categoria
+from .serializers import CategoriaSerializer
+from rest_framework import generics
+
+class CategoriaListCreateView(generics.ListCreateAPIView):
+    queryset = Categoria.objects.all()
+    serializer_class = CategoriaSerializer
+
+@api_view(['GET'])
+def listar_categorias(request):
+    categorias = Categoria.objects.filter(activo=True)
+    serializer = CategoriaSerializer(categorias, many=True)
+    return Response(serializer.data)
+
+@api_view(['PUT'])
+def editar_categoria(request, id):
+    categoria = get_object_or_404(Categoria, id_categoria=id, activo=True)
+    
+    categoria.nombre_categoria = request.data.get("nombre_categoria")
+    categoria.save()
+
+    return Response({"mensaje": "Categoría actualizada"})
+
+@api_view(['DELETE'])
+def eliminar_categoria(request, id):
+    categoria = get_object_or_404(Categoria, id_categoria=id)
+    categoria.activo = False
+    categoria.save()
+
+    return Response({"mensaje": "Categoría ocultada"})

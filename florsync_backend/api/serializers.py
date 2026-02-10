@@ -1,8 +1,7 @@
 from rest_framework import serializers
 from .models import Usuarios
 from .models import Clientes
-from .models import Producto
-from .models import Venta, DetalleVenta, Producto
+from .models import Venta, DetalleVenta
 from .models import Reporte
 
 class ReporteSerializer(serializers.ModelSerializer):
@@ -17,7 +16,7 @@ class ClienteSerializer(serializers.ModelSerializer):
         fields = '__all__' 
 
 class DetalleVentaSerializer(serializers.ModelSerializer):
-    producto = serializers.StringRelatedField()  # o usa producto.nombre si prefieres
+    #producto = serializers.StringRelatedField()  # o usa producto.nombre si prefieres
 
     class Meta:
         model = DetalleVenta
@@ -39,17 +38,11 @@ class UsuariosSerializer(serializers.ModelSerializer):
         fields = '__all__' 
  
 
-class ProductoSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Producto
-        fields = '__all__'
-
-        def create(self, validated_data):
-            id_producto = validated_data.get('id_producto')
-
-        # Verificar si el ID ya existe
-            if Producto.objects.filter(id_producto=id_producto).exists():
-                raise serializers.ValidationError({"id_producto": "Este ID ya existe. No se puede duplicar."})
-
-            return super().create(validated_data)
         
+from rest_framework import serializers
+from .models import Categoria
+
+class CategoriaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Categoria
+        fields = "__all__"

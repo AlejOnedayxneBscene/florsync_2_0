@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.hashers import make_password, check_password
+from productos.models import Producto
 
 class Clientes(models.Model):
     cedula = models.CharField(max_length=20, primary_key=True)
@@ -36,20 +37,22 @@ class Venta(models.Model):
         cliente_info = self.cliente.nombre_cliente if self.cliente else "Anónimo"
         return f"Venta #{self.id_venta} - {cliente_info} - {self.fecha.strftime('%d/%m/%Y')}"
 
-class Producto(models.Model):
-    id_producto = models.IntegerField(primary_key=True)
-    nombre = models.CharField(max_length=100)
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    tipo = models.CharField(max_length=50)
-    cantidad = models.IntegerField()
+from django.db import models
+
+class Categoria(models.Model):
+    id_categoria = models.AutoField(primary_key=True)
+    nombre_categoria = models.CharField(max_length=50, unique=True)
+    activo = models.BooleanField(default=True)
 
     def __str__(self):
-        return self.nombre
+        return self.nombre_categoria
+
+
 
 class DetalleVenta(models.Model):
     id_detalle = models.AutoField(primary_key=True)
     venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey(Producto, on_delete=models.CASCADE)
+    producto = models.ForeignKey("productos.Producto", on_delete=models.CASCADE)
     cantidad = models.PositiveIntegerField()
     precio = models.DecimalField(max_digits=10, decimal_places=2)
     total = models.DecimalField(max_digits=10, decimal_places=2)
