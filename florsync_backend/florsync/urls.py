@@ -10,5 +10,6 @@ urlpatterns = [
     path("api/token/", TokenObtainPairView.as_view(), name="token_obtain_pair"),
     path("", include("api.url")),  # o "api/"
     path("api/token/refresh/", TokenRefreshView.as_view(), name="token_refresh"),
-    path('productos/', include('productos.urls'))
+    path('productos/', include('productos.urls')),
+    path('clientes/', include('clientes.urls'))
 ]

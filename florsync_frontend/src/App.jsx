@@ -7,6 +7,7 @@ import Ventas from "./pages/RealizaVentas";
 import VentasMostrar from "./pages/VisualizarVentas";
 import Categorias from "./pages/Categorias";
 import Inventario from "./pages/Inventario";
+import Clientes from "./pages/Clientes";
 const ProtectedRoute = ({ children }) => {
   const { isAuthenticated, isAuthLoaded } = useAuth();
 
@@ -34,7 +35,7 @@ export default function App() {
           }
         >
           {/* CLIENTES */}
-          <Route path="/clientes" element={<Inventario />} />
+          <Route path="/clientes" element={<Clientes />} />
          
 
           {/* INVENTARIO */}

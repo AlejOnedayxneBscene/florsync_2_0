@@ -45,6 +45,8 @@ INSTALLED_APPS = [
     'corsheaders',
     'usuarios',  # tu app de usuarios
     'productos',
+    'clientes',
+
     # Otras apps personalizadas...
 ]
 

@@ -1,8 +1,5 @@
 const routeTitles = {
   "/clientes": "Clientes",
-  "/clientes/nuevo": "Nuevo Cliente",
-  "/clientes/editar": "Editar Cliente",
-  "/clientes/eliminar": "Eliminar Cliente",
 
   "/inventario": "Inventario",
 

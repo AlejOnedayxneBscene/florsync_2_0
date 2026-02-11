@@ -19,10 +19,7 @@ const menuItems = [
     name: "Clientes",
     path: "/clientes",
     children: [
-      { name: "Registrar cliente", path: "/clientes/nuevo" },
-      { name: "Listado de clientes", path: "/clientes" },
-      { name: "Editar cliente", path: "/clientes/editar" },
-      { name: "Eliminar cliente", path: "/clientes/eliminar" },
+      { name: "Gestión de clientes", path: "/clientes" },
     ],
   },
   {

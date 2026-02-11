@@ -4,7 +4,6 @@ from .models import Usuarios
 from .models import Venta
 from .models import DetalleVenta
 from .models import Clientes, Producto
-from .serializers import ClienteSerializer
 from .serializers import UsuariosSerializer
 from rest_framework import status
 from django.db import transaction

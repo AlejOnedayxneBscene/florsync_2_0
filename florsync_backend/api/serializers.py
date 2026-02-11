@@ -1,6 +1,5 @@
 from rest_framework import serializers
 from .models import Usuarios
-from .models import Clientes
 from .models import Venta, DetalleVenta
 from .models import Reporte
 
@@ -10,11 +9,6 @@ class ReporteSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
-class ClienteSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Clientes
-        fields = '__all__' 
-
 class DetalleVentaSerializer(serializers.ModelSerializer):
     #producto = serializers.StringRelatedField()  # o usa producto.nombre si prefieres
 
@@ -23,12 +17,12 @@ class DetalleVentaSerializer(serializers.ModelSerializer):
         fields = ['producto', 'cantidad', 'precio', 'total']
 
 class VentaSerializer(serializers.ModelSerializer):
-    cliente = ClienteSerializer()
+    #cliente = ClienteSerializer()
     detalles = DetalleVentaSerializer(many=True, read_only=True)
 
     class Meta:
         model = Venta
-        fields = ['id_venta', 'cliente', 'fecha', 'total', 'detalles']
+        #fields = ['id_venta', 'cliente', 'fecha', 'total', 'detalles']
 
    
 
