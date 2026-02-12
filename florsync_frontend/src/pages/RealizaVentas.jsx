@@ -1,167 +1,302 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom"; // Importar para la navegación
-import { obtenerProductos } from "../api/test.api";
-import "../css/Ventas.css"; // Importamos los estilos
+import { obtenerProductos } from "../api/apiProductos";
+import { registrarVenta } from "../api/apiVentas";
+import { obtenerCategorias } from "../api/apiCategorias";
+import DataTable from "../components/iu/CategoriasList";
+import Buscador from "../components/iu/Buscador";
+import FiltroCategoria from "../components/iu/FiltroCategoria";
+import Button from "../components/iu/Button";
+import ResumenVenta from "../components/iu/ResumeVenta";
+import { buscarClientePorCedula, crearCliente } from "../api/apiClientes";
+import ConfirmModal from "../components/iu/ConfirmModal";
 
 const Ventas = () => {
-    const [productos, setProductos] = useState([]);
-    const [filtroNombre, setFiltroNombre] = useState("");
-    const [filtroTipo, setFiltroTipo] = useState("");
-    const [tipos, setTipos] = useState([]);
-    const [ventas, setVentas] = useState({});
-    const [carrito, setCarrito] = useState([]);
-    const [mostrarCantidad, setMostrarCantidad] = useState({});
-    const navigate = useNavigate(); // Hook para la navegación
+  const [metodoPago, setMetodoPago] = useState("efectivo");
+  const [efectivoRecibido, setEfectivoRecibido] = useState("");
+  const [productos, setProductos] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState("");
+  const [categorias, setCategorias] = useState([]);
+  const [carrito, setCarrito] = useState([]);
 
-    useEffect(() => {
-        document.body.classList.add("menu-body");
-        return () => {
-            document.body.classList.remove("menu-body");
-        };
-    }, []);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [ventaSuccess, setVentaSuccess] = useState(null);
+  const [clienteParaVenta, setClienteParaVenta] = useState(null);
 
-     useEffect(() => {
-                  document.body.classList.add("menu-body");
-                  return () => document.body.classList.remove("menu-body");
-              }, []);
+  // ================================
+  // CARGAR PRODUCTOS Y CATEGORÍAS
+  // ================================
+  useEffect(() => {
+    const cargarDatos = async () => {
+      try {
+        const categoriasData = await obtenerCategorias();
+        setCategorias(categoriasData);
 
-    useEffect(() => {
-        obtenerProductos()
-            .then(data => {
-                setProductos(data);
-                const tiposUnicos = [...new Set(data.map(producto => producto.tipo))];
-                setTipos(tiposUnicos);
-            })
-            .catch(error => console.error("Error al obtener productos:", error));
-    }, []);
+        const productosData = await obtenerProductos();
+        const productosConCategorias = productosData.map((p) => {
+          const cat = categoriasData.find((c) => c.id_categoria === p.categoria);
+          return { ...p, categoria: cat || { nombre_categoria: "-" } };
+        });
 
-    const agregarAlCarrito = (producto) => {
-        setMostrarCantidad({ ...mostrarCantidad, [producto.id_producto]: true });
+        setProductos(productosConCategorias);
+      } catch (error) {
+        console.error("Error cargando productos o categorías:", error);
+      }
     };
 
-    const confirmarAgregarCarrito = (producto) => {
-        const cantidadSeleccionada = parseInt(ventas[producto.id_producto] || "0", 10);
-    
-        if (cantidadSeleccionada > 0 && cantidadSeleccionada <= producto.cantidad) {
-            // Reducir el stock disponible en la UI
-            setProductos(prevProductos =>
-                prevProductos.map(item =>
-                    item.id_producto === producto.id_producto
-                        ? { ...item, cantidad: item.cantidad - cantidadSeleccionada }
-                        : item
-                )
-            );
-    
-            // Agregar el producto apara venta
-            const productoExistente = carrito.find(item => item.id_producto === producto.id_producto);
-    
-            if (productoExistente) {
-                setCarrito(carrito.map(item =>
-                    item.id_producto === producto.id_producto
-                        ? { ...item, cantidad: item.cantidad + cantidadSeleccionada }
-                        : item
-                ));
-            } else {
-                setCarrito([...carrito, { ...producto, cantidad: cantidadSeleccionada }]);
-            }
-    
-            setMostrarCantidad({ ...mostrarCantidad, [producto.id_producto]: false });
-        } else {
-            alert("Cantidad no válida o stock insuficiente.");
-        }
+    cargarDatos();
+  }, []);
+
+  // ================================
+  // CARRITO
+  // ================================
+  const agregarAlCarrito = (producto) => {
+    if (carrito.find((item) => item.id_producto === producto.id_producto)) return;
+    setCarrito([...carrito, { ...producto, cantidad: 1 }]);
+  };
+
+  const aumentarCantidad = (id) => {
+    setCarrito((prev) =>
+      prev.map((item) =>
+        item.id_producto === id && item.cantidad < item.stock_total
+          ? { ...item, cantidad: item.cantidad + 1 }
+          : item
+      )
+    );
+  };
+
+  const disminuirCantidad = (id) => {
+    setCarrito((prev) =>
+      prev
+        .map((item) =>
+          item.id_producto === id ? { ...item, cantidad: item.cantidad - 1 } : item
+        )
+        .filter((item) => item.cantidad > 0)
+    );
+  };
+
+  const cambiarCantidad = (id, nuevaCantidad) => {
+    setCarrito((prev) =>
+      prev.map((item) =>
+        item.id_producto === id
+          ? { ...item, cantidad: Math.min(nuevaCantidad, item.stock_total) }
+          : item
+      )
+    );
+  };
+
+  const [inputTemporal, setInputTemporal] = useState({});
+  const handleInputChange = (id, value) => setInputTemporal((prev) => ({ ...prev, [id]: value }));
+  const handleInputBlur = (id) => {
+    const value = Number(inputTemporal[id]);
+    if (!value || value < 1) {
+      cambiarCantidad(id, 1);
+      setInputTemporal((prev) => ({ ...prev, [id]: "1" }));
+    } else {
+      cambiarCantidad(id, value);
+      setInputTemporal((prev) => ({ ...prev, [id]: value.toString() }));
+    }
+  };
+
+  // ================================
+  // REGISTRAR VENTA CON LOGS
+  // ================================
+  const handleVenta = async ({ cliente }) => {
+    if (carrito.length === 0) {
+      console.warn("⚠️ Carrito vacío, no se puede registrar venta");
+      return;
+    }
+
+    const total = carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
+
+    if (metodoPago === "efectivo" && Number(efectivoRecibido) < total) {
+      console.warn("⚠️ Efectivo recibido insuficiente", efectivoRecibido, "para total", total);
+      return;
+    }
+
+    let clienteId = null;
+    if (cliente?.cedula) {
+      console.log("🔍 Buscando cliente por cédula:", cliente.cedula);
+      const existente = await buscarClientePorCedula(cliente.cedula);
+      if (existente) {
+        console.log("✅ Cliente existente encontrado:", existente);
+        clienteId = existente.id_cliente;
+      } else {
+        console.log("➕ Cliente no existe, creando nuevo cliente:", cliente);
+        const nuevo = await crearCliente(cliente);
+        clienteId = nuevo.id_cliente;
+        console.log("✅ Cliente creado:", nuevo);
+      }
+    }
+
+    const payload = {
+      cliente: clienteId,
+      metodo_pago: metodoPago,
+      efectivo_recibido: metodoPago === "efectivo" ? Number(efectivoRecibido) : null,
+      detalles: carrito.map((item) => ({
+        producto: item.id_producto,
+        cantidad: item.cantidad,
+        precio: item.precio,
+        total: item.precio * item.cantidad,
+      })),
+      total,
     };
 
-    const productosFiltrados = productos.filter(producto =>
-        (producto.nombre.toLowerCase().includes(filtroNombre.toLowerCase()) ||
-            producto.id_producto.toString().includes(filtroNombre)) &&
-        (filtroTipo === "" || producto.tipo === filtroTipo)
+    console.log("📤 Payload de la venta que se enviará al backend:", payload);
+
+    try {
+      const respuesta = await registrarVenta(payload);
+      console.log("📥 Respuesta del backend:", respuesta);
+    } catch (error) {
+      console.error("🔥 Error al registrar la venta:", error);
+      throw error;
+    }
+
+    // 🔹 Descontar stock en frontend
+    setProductos((prev) =>
+      prev.map((p) => {
+        const itemVendido = carrito.find((c) => c.id_producto === p.id_producto);
+        return itemVendido ? { ...p, stock_total: p.stock_total - itemVendido.cantidad } : p;
+      })
     );
 
-    const irAlCarrito = () => {
-        console.log("Carrito antes de navegar:", carrito);
-        navigate("/realizarVenta", { state: { carrito } });
-    };
+    // 🔹 Limpiar carrito y reiniciar pago
+    setCarrito([]);
+    setMetodoPago("efectivo");
+    setEfectivoRecibido("");
+  };
 
-    return (
-        <div>
-            {/* Encabezado con botón de Carrito */}
-            <div className="encabezado-ventas">
-                <h1>Registro de <span>Ventas</span></h1>
-                <input
-                    type="text"
-                    className="buscador"
-                    placeholder="Buscar producto"
-                    value={filtroNombre}
-                    onChange={(e) => setFiltroNombre(e.target.value)}
-                />
-                <div className="filtros-tipos">
-                    {tipos.map((tipo, index) => (
-                        <label key={index} className="filtro-checkbox">
-                            <input
-                                type="checkbox"
-                                value={tipo}
-                                checked={filtroTipo === tipo}
-                                onChange={(e) => setFiltroTipo(e.target.checked ? tipo : "")}
-                            />
-                            {tipo}
-                        </label>
-                    ))}
-                </div>
+  // ================================
+  // MODAL CONFIRMACIÓN
+  // ================================
+  const handleConfirmVenta = (cliente) => {
+    if (carrito.length === 0) return;
+    console.log("🚀 Abrir modal de confirmación con cliente:", cliente);
+    setClienteParaVenta(cliente);
+    setConfirmOpen(true);
+  };
 
-                {/* Botón del Carrito pegado al encabezado */}
-                <button className="realizar-venta" onClick={irAlCarrito}>
-                     Realizar venta ({carrito.length})
-                </button>
+  const handleVentaReal = async () => {
+    console.log("🚀 handleVentaReal ejecutándose...");
+    try {
+      await handleVenta({ cliente: clienteParaVenta });
+      console.log("✅ Venta enviada al backend correctamente");
+      setVentaSuccess(true);
+    } catch (error) {
+      console.error("🔥 Error al realizar la venta:", error);
+      setVentaSuccess(false);
+    } finally {
+      setTimeout(() => {
+        setConfirmOpen(false);
+        setVentaSuccess(null);
+      }, 2000);
+    }
+  };
+
+  // ================================
+  // FILTROS
+  // ================================
+  const productosFiltrados = productos.filter((producto) => {
+    const coincideNombre =
+      producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
+      producto.id_producto.toString().includes(busqueda);
+    const coincideCategoria =
+      !categoriaSeleccionada || producto.categoria?.id_categoria === Number(categoriaSeleccionada);
+    return coincideNombre && coincideCategoria;
+  });
+
+  // ================================
+  // COLUMNAS TABLA
+  // ================================
+  const columns = [
+    { key: "id_producto", label: "ID" },
+    { key: "nombre", label: "Nombre" },
+    { key: "categoria", label: "Categoría", render: (row) => row.categoria?.nombre_categoria || "-" },
+    {
+      key: "precio",
+      label: "Precio",
+      render: (row) =>
+        new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(
+          row.precio
+        ),
+    },
+    { key: "stock_total", label: "Stock", render: (row) => row.stock_total },
+    {
+      key: "venta",
+      label: "Venta",
+      align: "center",
+      render: (row) => {
+        const productoEnCarrito = carrito.find((item) => item.id_producto === row.id_producto);
+        if (!productoEnCarrito)
+          return <Button className="h-6 px-2 text-xs" onClick={() => agregarAlCarrito(row)}>Añadir</Button>;
+
+        return (
+          <div className="flex items-center justify-center gap-2">
+            <button onClick={() => disminuirCantidad(row.id_producto)} className="w-6 h-6 rounded-full bg-red-500 text-white text-sm">−</button>
+            <input
+              type="number"
+              value={inputTemporal[row.id_producto] ?? productoEnCarrito.cantidad}
+              min="1"
+              max={row.stock_total}
+              onChange={(e) => handleInputChange(row.id_producto, e.target.value)}
+              onBlur={() => handleInputBlur(row.id_producto)}
+              className="w-10 text-center border rounded text-sm"
+            />
+            <button
+              onClick={() => aumentarCantidad(row.id_producto)}
+              disabled={productoEnCarrito.cantidad >= row.stock_total}
+              className="w-6 h-6 rounded-full bg-green-500 text-white text-sm disabled:bg-gray-300"
+            >
+              +
+            </button>
+          </div>
+        );
+      },
+    },
+  ];
+
+  return (
+    <div className="w-full bg-gray-200 p-4 min-h-screen">
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1">
+          <div className="flex flex-col lg:flex-row lg:items-center gap-4 mb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 flex-1">
+              <Buscador busqueda={busqueda} setBusqueda={setBusqueda} placeholder="Buscar producto" />
+              <FiltroCategoria categorias={categorias} categoriaSeleccionada={categoriaSeleccionada} setCategoriaSeleccionada={setCategoriaSeleccionada} />
             </div>
-
-            {/* Lista de productos */}
-            <div className="ventas-container">
-                {productosFiltrados.length === 0 ? (
-                    <p className="mensaje-no-productos">No hay productos disponibles.</p>
-                ) : (
-                    <div className="productos-container">
-                        {productosFiltrados.map(producto => (
-                            <div key={producto.id_producto} className="producto-card">
-                                <p><strong>Referencia:</strong> {producto.id_producto}</p>
-                                <p><strong>Nombre del producto:</strong> {producto.nombre}</p>
-                                <p><strong>Precio:</strong> ${parseFloat(producto.precio).toFixed(0)}</p>
-                                <p><strong>Stock:</strong> {producto.cantidad}</p>
-                                <button className="boton-anadir-carrito" onClick={() => agregarAlCarrito(producto)}>
-                                    Añadir al Carrito
-                                </button> 
-                                 {mostrarCantidad[producto.id_producto] && (
-                                    <div>
-                                        <input
-                                            type="number"
-                                            min="1"
-                                            max={producto.cantidad}
-                                            placeholder="Cantidad"
-                                            value={ventas.hasOwnProperty(producto.id_producto) ? ventas[producto.id_producto] : ""}
-                                            onChange={(e) => {
-                                                const inputValue = e.target.value;
-
-                                                // Permitir cadena vacía mientras se escribe
-                                                if (inputValue === "") {
-                                                    setVentas({ ...ventas, [producto.id_producto]: "" });
-                                                    return;
-                                                }
-
-                                                const value = parseInt(inputValue, 10);
-                                                if (!isNaN(value) && value > 0 && value <= producto.cantidad) {
-                                                    setVentas({ ...ventas, [producto.id_producto]: value });
-                                                }
-                                            }}
-                                        />
-                                            <button onClick={() => confirmarAgregarCarrito(producto)}>Confirmar</button>
-                                    </div>
-                                )}
-                            </div>
-                        ))}
-                    </div>
+            <div className="text-right mt-2 lg:mt-0 lg:ml-4">
+              <div className="text-xl font-semibold text-gray-700">Total</div>
+              <span className="text-5xl font-extrabold text-green-600">
+                {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(
+                  carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0)
                 )}
+              </span>
             </div>
+          </div>
+
+          <DataTable title="Productos" columns={columns} data={productosFiltrados} />
         </div>
-    );
+
+        <ResumenVenta
+          carrito={carrito}
+          setCarrito={setCarrito}
+          metodoPago={metodoPago}
+          setMetodoPago={setMetodoPago}
+          efectivoRecibido={efectivoRecibido}
+          setEfectivoRecibido={setEfectivoRecibido}
+          onRealizarVenta={handleConfirmVenta}
+          buscarClientePorCedula={buscarClientePorCedula}
+        />
+      </div>
+
+      <ConfirmModal
+        open={confirmOpen}
+        onConfirm={handleVentaReal}
+        onCancel={() => setConfirmOpen(false)}
+        success={ventaSuccess}
+      />
+    </div>
+  );
 };
 
 export default Ventas;

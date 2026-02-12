@@ -27,16 +27,6 @@ class Usuarios(models.Model):
     def verificar_contraseña(self, password):
         return check_password(password, self.contrasena)  # Verifica la contraseña encriptada
     
-class Venta(models.Model):
-    id_venta = models.AutoField(primary_key=True)
-    cliente = models.ForeignKey(Clientes, on_delete=models.SET_NULL, null=True, blank=True)
-    fecha = models.DateTimeField(auto_now_add=True)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        cliente_info = self.cliente.nombre_cliente if self.cliente else "Anónimo"
-        return f"Venta #{self.id_venta} - {cliente_info} - {self.fecha.strftime('%d/%m/%Y')}"
-
 from django.db import models
 
 class Categoria(models.Model):
@@ -47,18 +37,6 @@ class Categoria(models.Model):
     def __str__(self):
         return self.nombre_categoria
 
-
-
-class DetalleVenta(models.Model):
-    id_detalle = models.AutoField(primary_key=True)
-    venta = models.ForeignKey(Venta, on_delete=models.CASCADE, related_name='detalles')
-    producto = models.ForeignKey("productos.Producto", on_delete=models.CASCADE)
-    cantidad = models.PositiveIntegerField()
-    precio = models.DecimalField(max_digits=10, decimal_places=2)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
-
-    def __str__(self):
-        return f"Detalle {self.id_detalle} - Venta {self.venta.id_venta} - {self.producto.nombre}"
 
 class Reporte(models.Model):
     id_reporte = models.AutoField(primary_key=True)

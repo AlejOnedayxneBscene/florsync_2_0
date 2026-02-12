@@ -72,3 +72,14 @@ def eliminar_cliente(request, cedula):
     cliente.activo = False
     cliente.save()
     return Response({"mensaje": "Cliente ocultado"})
+
+
+
+@api_view(["GET"])
+def buscar_cliente_por_cedula(request, cedula):
+    try:
+        cliente = Clientes.objects.get(cedula=cedula)
+        serializer = ClienteSerializer(cliente)
+        return Response(serializer.data)
+    except Clientes.DoesNotExist:
+        return Response({"detail": "No encontrado"}, status=status.HTTP_404_NOT_FOUND)

@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     'usuarios',  # tu app de usuarios
     'productos',
     'clientes',
+    'ventas',
 
     # Otras apps personalizadas...
 ]

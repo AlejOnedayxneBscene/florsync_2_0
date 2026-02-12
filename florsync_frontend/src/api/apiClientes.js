@@ -21,3 +21,12 @@ export const eliminarCliente = async (cedula) => {
 };
 
 
+export const buscarClientePorCedula = async (cedula) => {
+  try {
+    const res = await api.get(`/clientes/${cedula}/buscar/`);
+    return res.data;
+  } catch (error) {
+    return null; // si no existe devuelve null
+  }
+};
+

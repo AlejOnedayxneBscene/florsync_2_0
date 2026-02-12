@@ -1,8 +1,6 @@
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
 from .models import Usuarios
-from .models import Venta
-from .models import DetalleVenta
 from .models import Clientes, Producto
 from .serializers import UsuariosSerializer
 from rest_framework import status
@@ -10,7 +8,6 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404
 from datetime import datetime
 from django.utils import timezone
-from .serializers import VentaSerializer
 from datetime import datetime
 from django.db.models import Sum
 
