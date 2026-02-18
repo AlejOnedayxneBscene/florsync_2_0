@@ -10,15 +10,20 @@ import Button from "../components/iu/Button";
 import DataTable from "../components/iu/CategoriasList";
 import Form from "../components/iu/CategoriasForms";
 import Buscador from "../components/iu/Buscador";
-
+import { AnimatePresence } from "framer-motion";
+import RegistroAnimacion from "../components/iu/registroAnimacion";
 const Clientes = () => {
+
+const [status, setStatus] = useState(null); // null = formulario, true = éxito, false = error
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [busqueda, setBusqueda] = useState("");
   const [editando, setEditando] = useState(false);
   const [idEditando, setIdEditando] = useState(null);
-
+  const [statusEliminar, setStatusEliminar] = useState(null); // null = nada, true = éxito, false = error
+ const usuario = JSON.parse(localStorage.getItem("user") || "null");
+const grupo = usuario?.grupo;
   const [formData, setFormData] = useState({
     cedula: "",
     nombre_cliente: "",
@@ -96,53 +101,68 @@ const Clientes = () => {
   };
 
   // Guardar o actualizar cliente
-  const handleSubmit = async (e, setError) => {
-    e.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e, setError) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      if (!formData.nombre_cliente.trim() || !formData.cedula.trim()) {
-        setError("Cédula y Nombre son obligatorios");
-        setLoading(false);
-        return;
-      }
-
-      // Siempre inicializamos compras en 0 al crear
-      const payload = {
-        cedula: formData.cedula.trim(),
-        nombre_cliente: formData.nombre_cliente.trim(),
-        direccion: formData.direccion.trim(),
-        telefono: formData.telefono.trim(),
-        correo: formData.correo.trim(),
-      };
-
-      if (editando) {
-        await actualizarCliente(idEditando, payload);
-      } else {
-        await crearCliente(payload); // compras = 0 en el backend
-      }
-
-      await cargarClientes();
-      setBusqueda("");
-      setModalOpen(false);
-    } catch (error) {
-      console.error("Error guardando clientes:", error);
-      setError("Error guardando clientes");
-    } finally {
+  try {
+    if (!formData.nombre_cliente.trim() || !formData.cedula.trim()) {
+      setError("Cédula y Nombre son obligatorios");
       setLoading(false);
+      return;
     }
-  };
+
+  const payload = {
+  cedula: formData.cedula.trim(),
+  nombre_cliente: formData.nombre_cliente.trim(),
+  direccion: formData.direccion.trim() || null,
+  telefono: formData.telefono.trim() || null,
+  correo: formData.correo.trim() || null,
+};
+
+
+    if (editando) {
+      await actualizarCliente(idEditando, payload);
+    } else {
+      await crearCliente(payload);
+    }
+
+    await cargarClientes();
+    setBusqueda("");
+    setStatus(true); // ← éxito
+    setTimeout(() => {
+      setModalOpen(false); // cierra modal
+      setStatus(null); // reset status
+    }, 2000);
+  } catch (error) {
+    console.error("Error guardando clientes:", error);
+    setStatus(false); // ← error
+    setTimeout(() => setStatus(null), 2000); // permite reintento
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   // Eliminar cliente
-  const handleDelete = async (cedula) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
-    try {
-      await eliminarCliente(cedula);
-      await cargarClientes();
-    } catch (error) {
-      console.error("Error eliminando cliente:", error);
-    }
-  };
+const handleDelete = async (cedula) => {
+  if (!window.confirm("¿Seguro que deseas eliminar este cliente?")) return;
+
+  try {
+    await eliminarCliente(cedula);
+    await cargarClientes();
+
+    // Animación de éxito
+    setStatusEliminar(true);
+    setTimeout(() => setStatusEliminar(null), 2000); // desaparece después de 2s
+  } catch (error) {
+    console.error("Error eliminando cliente:", error);
+
+    // Animación de error
+    setStatusEliminar(false);
+    setTimeout(() => setStatusEliminar(null), 2000); // desaparece después de 2s
+  }
+};
 
   return (
     <div className="w-full bg-gray-200 p-4">
@@ -165,32 +185,47 @@ const Clientes = () => {
           </div>
         </div>
 
-        <DataTable
-          title="Listado de Clientes"
-          columns={columns}
-          data={ClientesFiltrados}
-          onEdit={abrirEditar}
-          onDelete={(row) => handleDelete(row.cedula)}
-          emptyText="No hay clientes registrados."
-        />
+        <div className="relative">
+  <DataTable
+    title="Listado de Clientes"
+    columns={columns}
+    data={ClientesFiltrados}
+    onEdit={grupo === "Administrador" ? abrirEditar : null}
+    onDelete={
+      grupo === "Administrador"
+        ? (row) => handleDelete(row.cedula)
+        : null
+    }
+    emptyText="No hay clientes registrados."
+  />
+
+  {statusEliminar !== null && (
+    <div className="absolute inset-0 flex justify-center items-center bg-white/70 rounded-lg z-50">
+      <RegistroAnimacion success={statusEliminar} />
+    </div>
+  )}
+</div>
+
       </div>
 
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editando ? "Editar Cliente" : "Registrar Cliente"}
-      >
-        <Form
-          fields={fields}
-          formData={formData}
-          handleChange={(e) =>
-            setFormData({ ...formData, [e.target.name]: e.target.value })
-          }
-          handleSubmit={handleSubmit}
-          loading={loading}
-          submitText={editando ? "Actualizar" : "Guardar"}
-        />
-      </Modal>
+    <Modal
+  open={modalOpen}
+  onClose={() => setModalOpen(false)}
+  title={editando ? "Editar Cliente" : "Registrar Cliente"}
+  status={status}
+>
+  <Form
+    fields={fields}
+    formData={formData}
+    handleChange={(e) =>
+      setFormData({ ...formData, [e.target.name]: e.target.value })
+    }
+    handleSubmit={handleSubmit} // ← aquí
+    loading={loading}
+    submitText={editando ? "Actualizar" : "Guardar"}
+  />
+</Modal>
+
     </div>
   );
 };

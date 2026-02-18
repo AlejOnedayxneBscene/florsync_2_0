@@ -24,9 +24,15 @@ const DataTable = ({
   onDelete,
   emptyText = "No hay registros.",
 }) => {
+  // 🔹 Filtrar productos con stock total > 0
+// Si existe stock_total, filtra por > 0, si no, devuelve todos los datos
+const filteredData = data.filter((p) => {
+  if ("stock_total" in p) return Number(p.stock_total) > 0;
+  return true;
+});
+
   return (
     <div className="w-full bg-white shadow-md rounded-md overflow-hidden">
-      {/* Header */}
       <div className="bg-[#062b2b] text-white px-6 py-4 font-bold text-xl">
         {title}
       </div>
@@ -56,7 +62,7 @@ const DataTable = ({
           </thead>
 
           <tbody>
-            {data.length === 0 ? (
+            {filteredData.length === 0 ? (
               <tr>
                 <td
                   colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
@@ -66,7 +72,7 @@ const DataTable = ({
                 </td>
               </tr>
             ) : (
-              data.map((row, index) => (
+              filteredData.map((row, index) => (
                 <tr
                   key={row.id || index}
                   className={`border-b text-lg ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
@@ -85,9 +91,9 @@ const DataTable = ({
                       {col.render
                         ? col.render(row)
                         : col.key === "precio"
-                        ? formatPrecio(row[col.key]) // Formateo COP para precios
+                        ? formatPrecio(row[col.key])
                         : typeof row[col.key] === "string"
-                        ? capitalize(row[col.key]) // Capitaliza texto
+                        ? capitalize(row[col.key])
                         : row[col.key] ?? "-"}
                     </td>
                   ))}

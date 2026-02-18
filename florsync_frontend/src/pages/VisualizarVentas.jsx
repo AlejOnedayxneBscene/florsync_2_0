@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { obtenerVentas } from "../api/test.api";
-import "../css/VentasMostrar.css";
-
+import { obtenerVentas } from "../api/apiVentas";
 
 const VentasMostrar = () => {
   const [ventas, setVentas] = useState([]);
-  const [fechaFiltro, setFechaFiltro] = useState('');
-  const [fechaConsultada, setFechaConsultada] = useState('');
+  const [fechaFiltro, setFechaFiltro] = useState("");
+  const [fechaConsultada, setFechaConsultada] = useState("");
+
+  const usuario = JSON.parse(localStorage.getItem("user") || "null");
+const grupo = usuario?.grupo;
 
   const obtenerFechaLocal = () => {
     const ahora = new Date();
@@ -22,18 +23,6 @@ const VentasMostrar = () => {
     cargarVentas(hoy);
   }, []);
 
-    useEffect(() => {
-          document.body.classList.add("ventas-body");
-          return () => {
-              document.body.classList.remove("ventas-body");
-          };
-      }, []);
-
-
-       useEffect(() => {
-              document.body.classList.add("ventas-body");
-              return () => document.body.classList.remove("ventas-body");
-          }, []);
   const cargarVentas = async (fecha) => {
     try {
       const data = await obtenerVentas(fecha);
@@ -46,9 +35,7 @@ const VentasMostrar = () => {
   };
 
   const handleFiltrar = () => {
-    if (fechaFiltro) {
-      cargarVentas(fechaFiltro);
-    }
+    if (fechaFiltro) cargarVentas(fechaFiltro);
   };
 
   const formatearSoloFecha = (fecha) => {
@@ -69,8 +56,7 @@ const VentasMostrar = () => {
 
   const formatearFechaHora = (fecha) => {
     if (!fecha) return "Fecha inválida";
-    const fechaObj = new Date(fecha);
-    return fechaObj.toLocaleString("es-CO", {
+    return new Date(fecha).toLocaleString("es-CO", {
       year: "numeric",
       month: "long",
       day: "numeric",
@@ -81,53 +67,96 @@ const VentasMostrar = () => {
     });
   };
 
-  const formatearNumero = (num) => {
-    const n = parseFloat(num);
-    return isNaN(n)
-      ? "0.00"
-      : n.toLocaleString("es-CO", {
-          minimumFractionDigits: 2,
-          maximumFractionDigits: 2,
-        });
-  };
+ const formatearNumero = (num) => {
+  const n = Number(num);
 
-  return (
-    <div className="ventas-container">
+  return isNaN(n)
+    ? "$0"
+    : new Intl.NumberFormat("es-CO", {
+        style: "currency",
+        currency: "COP",
+        minimumFractionDigits: 0,
+      }).format(n);
+};
 
 
-      <div className="filtro-fecha">
-        <input
-          type="date"
-          value={fechaFiltro}
-          onChange={(e) => setFechaFiltro(e.target.value)}
-        />
-        <button onClick={handleFiltrar}>Filtrar</button>
+return (
+  <div className="min-h-screen bg-gray-100 p-6 font-sans text-gray-800">
+
+    {/* FILTRO */}
+    <div className="bg-white rounded-2xl shadow-sm border p-4 flex flex-col sm:flex-row gap-3 items-center mb-6">
+      <input
+        type="date"
+        value={fechaFiltro}
+        onChange={(e) => setFechaFiltro(e.target.value)}
+        className="border rounded-lg px-3 py-2 text-sm w-full sm:w-auto focus:ring-2 focus:ring-teal-500"
+      />
+
+      <button
+        onClick={handleFiltrar}
+        className="bg-teal-600 hover:bg-teal-700 text-white px-4 py-2 rounded-lg font-semibold transition"
+      >
+        Filtrar
+      </button>
+    </div>
+
+    {/* TITULO */}
+    {fechaConsultada && (
+      <h2 className="text-2xl font-bold tracking-tight text-gray-700 mb-6">
+        Ventas realizadas el:{" "}
+        <span className="text-teal-700">
+          {formatearSoloFecha(fechaConsultada)}
+        </span>
+      </h2>
+    )}
+
+    {/* LISTA */}
+    {ventas.length === 0 ? (
+      <div className="bg-white rounded-xl shadow p-6 text-center text-gray-500">
+        No hay ventas registradas.
       </div>
-
-      {fechaConsultada && (
-        <h3 className="subtitulo">
-          Ventas realizadas el: {formatearSoloFecha(fechaConsultada)}
-        </h3>
-      )}
-
-      {ventas.length === 0 ? (
-        <p>No hay ventas registradas.</p>
-      ) : (
-        ventas.map((venta, index) => {
+    ) : (
+      <div className="space-y-5">
+        {ventas.map((venta, index) => {
           const cliente = venta.cliente ?? {};
           const detalles = Array.isArray(venta.detalles) ? venta.detalles : [];
+          const usuario = venta.usuario ?? null;
 
           return (
-            <div key={index} className="venta-card">
-              <h3>Venta #{index + 1}</h3>
-              <p>
-                <strong>Fecha:</strong> {formatearFechaHora(venta.fecha)}
-              </p>
-              <p>
-                <strong>Total:</strong> ${formatearNumero(venta.total)}
+            <div
+              key={index}
+              className="bg-white rounded-2xl shadow-sm border p-6"
+            >
+              {/* HEADER */}
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-3">
+                <h3 className="text-xl font-bold text-teal-700">
+                  Venta #{index + 1}
+                </h3>
+
+                <p className="text-sm text-gray-500">
+                  {formatearFechaHora(venta.fecha)}
+                </p>
+              </div>
+
+              <p className="text-2xl font-extrabold text-green-600 mb-4">
+                ${formatearNumero(venta.total)}
               </p>
 
-              <div className="cliente-info">
+              {/*  USUARIO */}
+              {usuario && (
+                <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3 text-sm">
+                  <p>
+                    <span className="font-semibold">Vendedor:</span>{" "}
+                    {usuario.nombre}
+                  </p>
+                  <p>
+                    <span className="font-semibold">ID:</span> {usuario.id}
+                  </p>
+                </div>
+              )}
+
+              {/* CLIENTE */}
+              <div className="bg-gray-50 rounded-lg p-3 mb-3 text-sm leading-relaxed">
                 <p><strong>Nombre:</strong> {cliente.nombre_cliente || "Anónimo"}</p>
                 <p><strong>Cédula:</strong> {cliente.cedula || "N/A"}</p>
                 <p><strong>Teléfono:</strong> {cliente.telefono || "N/A"}</p>
@@ -135,28 +164,39 @@ const VentasMostrar = () => {
                 <p><strong>Dirección:</strong> {cliente.direccion || "N/A"}</p>
               </div>
 
+              {/* PRODUCTOS */}
               {detalles.length > 0 ? (
-                <div className="productos-detalle">
-                  <p><strong>Productos vendidos:</strong></p>
-                  <ul>
+                <div className="bg-gray-50 rounded-lg p-3">
+                  <p className="font-semibold mb-2 text-gray-700">
+                    Productos vendidos:
+                  </p>
+
+                  <ul className="space-y-1 text-sm text-gray-700">
                     {detalles.map((detalle, i) => (
-                      <li key={i}>
-                        {detalle.producto} - {detalle.cantidad} unidad(es) x ${formatearNumero(detalle.precio)} = ${formatearNumero(detalle.total || detalle.precio * detalle.cantidad)}
+                      <li key={i} className="border-b pb-1">
+                        {detalle.producto} — {detalle.cantidad} x $
+                        {formatearNumero(detalle.precio)} = $
+                        {formatearNumero(
+                          detalle.total ||
+                            detalle.precio * detalle.cantidad
+                        )}
                       </li>
                     ))}
                   </ul>
                 </div>
               ) : (
-                <p style={{ color: "red" }}>
+                <p className="text-red-600 text-sm font-semibold">
                   ❗ Esta venta no tiene productos registrados.
                 </p>
               )}
             </div>
           );
-        })
-      )}
-    </div>
-  );
+        })}
+      </div>
+    )}
+  </div>
+);
+
 };
 
 export default VentasMostrar;

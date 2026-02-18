@@ -1,40 +1,25 @@
-from rest_framework import generics
-from rest_framework.decorators import api_view
-from rest_framework.response import Response
-from django.shortcuts import get_object_or_404
+from rest_framework.viewsets import ModelViewSet
+from rest_framework.exceptions import PermissionDenied
 from .models import Producto
 from .serializers import ProductoSerializer
+from usuarios.permissions import EsAdmin, EsAdminOVendedor
 
-@api_view(['GET'])
-def listar_productos(request):
-    productos = Producto.objects.filter(activo=True)
-    serializer = ProductoSerializer(productos, many=True)
-    return Response(serializer.data)
 
-class ProductoListCreateView(generics.ListCreateAPIView):
-    queryset = Producto.objects.filter(activo=True)
+class ProductoViewSet(ModelViewSet):
     serializer_class = ProductoSerializer
+    queryset = Producto.objects.filter(activo=True)
 
-@api_view(['PUT'])
-def editar_producto(request, id):
-    producto = get_object_or_404(Producto, id_producto=id, activo=True)
+    # 🔥 permisos por acción
+    def get_permissions(self):
 
-    producto.nombre = request.data.get("nombre")
-    producto.precio = request.data.get("precio")
-    producto.categoria_id = request.data.get("categoria")
-    producto.cantidad = request.data.get("cantidad")
-    producto.stock_total = request.data.get("stock_total")
-    producto.stock_minimo = request.data.get("stock_minimo")
+        # solo admin puede crear/editar/eliminar
+        if self.action in ["create", "update", "partial_update", "destroy"]:
+            return [EsAdmin()]
 
-    producto.save()
+        # vendedor solo ve
+        return [EsAdminOVendedor()]
 
-    return Response({"mensaje": "Producto actualizado"})
-
-
-@api_view(['DELETE'])
-def eliminar_producto(request, id):
-    producto = get_object_or_404(Producto, id_producto=id)
-    producto.activo = False
-    producto.save()
-
-    return Response({"mensaje": "Producto ocultado"})
+    # 🔥 eliminación lógica
+    def perform_destroy(self, instance):
+        instance.activo = False
+        instance.save()

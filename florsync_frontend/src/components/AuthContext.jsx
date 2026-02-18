@@ -76,14 +76,18 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [isAuthenticated]);
 
-const login = (access, refresh) => {
+const login = (access, refresh, user) => {
   localStorage.setItem("access", access);
   localStorage.setItem("refresh", refresh);
+
+  // 🔥 ESTA LÍNEA FALTABA
+  localStorage.setItem("user", JSON.stringify(user));
 
   setIsAuthenticated(true);
   resetInactivityTimer();
   startTracking();
 };
+
 
 const logout = () => {
   setIsAuthenticated(false);

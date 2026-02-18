@@ -10,6 +10,13 @@ class Rol(models.Model):
 class Usuario(AbstractUser):
     foto_url = models.CharField(max_length=400, blank=True, null=True)
     activo = models.BooleanField(default=True)
+    cedula = models.CharField(max_length=20, null=True, blank=True)
+    rol = models.ForeignKey(
+        'Rol',
+        on_delete=models.PROTECT,
+        null=True,
+        blank=True
+    )
 
     def save(self, *args, **kwargs):
         # Normalizamos los campos de texto a minúsculas
@@ -25,3 +32,6 @@ class Usuario(AbstractUser):
 
     def __str__(self):
         return self.username
+
+    
+    

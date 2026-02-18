@@ -27,7 +27,6 @@ const Form = ({
 
     const errors = {};
 
-    // 🔹 Validaciones personalizadas
     fields.forEach((f) => {
       const val = formData[f.name];
 
@@ -43,10 +42,14 @@ const Form = ({
         if (f.name === "precio" && num < 500) {
           errors[f.name] = "El precio mínimo es 500";
         }
+        if (f.name === "cantidad" && formData.stock_total != null) {
+          if (num > Number(formData.stock_total)) {
+            errors[f.name] = `No puedes vender más de ${formData.stock_total}`;
+          }
+        }
       }
     });
 
-    // 🔹 Validación stock_total >= stock_minimo
     if (
       formData.stock_total &&
       formData.stock_minimo &&
@@ -71,6 +74,24 @@ const Form = ({
       setStatus("error");
       setTimeout(() => setStatus(null), 1400);
     }
+  };
+
+  // 🔹 Función para validar cantidad mientras se digita
+  const handleCantidadChange = (e, maxStock) => {
+    let value = e.target.value.replace(/\D/g, ""); // solo números
+    let num = Number(value || 0);
+
+    if (num > maxStock) {
+      setFieldError((prev) => ({
+        ...prev,
+        cantidad: `Esta cantidad no es válida, máximo permitido: ${maxStock}`,
+      }));
+      handleChange({ target: { name: "cantidad", value: "0" } }); // reset a 0
+      return;
+    }
+
+    setFieldError((prev) => ({ ...prev, cantidad: null }));
+    handleChange({ target: { name: "cantidad", value: num.toString() } });
   };
 
   return (
@@ -105,7 +126,6 @@ const Form = ({
         <div key={f.name}>
           <label className="block mb-1 font-semibold text-[15px]">{f.label}</label>
 
-          {/* 🔹 Campo select de categoría */}
           {f.name === "categoria" && f.options ? (
             <select
               name={f.name}
@@ -116,15 +136,12 @@ const Form = ({
             >
               <option value="">Seleccione una categoría</option>
               {f.options
-                .filter(c => c.activo !== false) // 🔹 solo categorías activas
+                .filter(c => c.activo !== false)
                 .map((opt) => (
                   <option key={opt.id_categoria} value={opt.id_categoria}>
                     {opt.nombre_categoria}
                   </option>
-                ))
-              }
-
-              {/* 🔹 Si el producto tiene categoría desactivada, mostrarla pero deshabilitada */}
+                ))}
               {formData.categoria &&
                 !f.options.some(c => c.id_categoria === formData.categoria) && (
                   <option value={formData.categoria} disabled>
@@ -132,26 +149,29 @@ const Form = ({
                   </option>
                 )}
             </select>
+          ) : f.name === "cantidad" ? (
+            <input
+              type="number"
+              name="cantidad"
+              value={formData.cantidad ?? "0"}
+              onChange={(e) =>
+                handleCantidadChange(e, Number(formData.stock_total || 0))
+              }
+              placeholder={`Máx: ${formData.stock_total ?? 0}`}
+              min={0}
+              className={`w-full border rounded px-3 py-2
+                ${fieldError[f.name] ? "border-red-500" : "border-gray-300"}`}
+            />
           ) : (
-            // 🔹 Campo input genérico (texto o número)
             <input
               type={f.type || "text"}
               name={f.name}
-              value={
-                typeof formData[f.name] === "string"
-                  ? formData[f.name].toLowerCase()
-                  : formData[f.name] ?? ""
+              value={typeof formData[f.name] === "string"
+                ? formData[f.name].toLowerCase()
+                : formData[f.name] ?? ""
               }
-              onChange={(e) => {
-                let value = e.target.value;
-                if (f.type === "text" || f.type === "textarea") {
-                  value = value.toLowerCase();
-                }
-                if (f.type === "number" && value.startsWith("-")) return;
-                handleChange({ target: { name: f.name, value } });
-              }}
+              onChange={(e) => handleChange(e)}
               placeholder={f.placeholder || ""}
-              min={f.type === "number" ? 1 : undefined}
               className={`w-full border rounded px-3 py-2
                 ${fieldError[f.name] ? "border-red-500" : "border-gray-300"}`}
             />

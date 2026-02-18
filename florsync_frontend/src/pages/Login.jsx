@@ -42,7 +42,15 @@ const handleSubmit = async (event, setError, setFieldError) => {
   const data = await validarUsuario(id_usuario, password);
 
 if (data?.access) {
-  login(data.access, data.refresh);
+login(
+  data.access,
+  data.refresh,
+  {
+    id: data.id,
+    username: data.username,
+    grupo: data.grupo,
+  }
+);
   navigate("/inventario");
 } else {
   setError("Usuario o contraseña incorrectos");

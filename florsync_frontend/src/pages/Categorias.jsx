@@ -12,12 +12,16 @@ import Button from "../components/iu/Button";
 import Buscador from "../components/iu/Buscador";
 import Form from "../components/iu/CategoriasForms";
 import DataTable from "../components/iu/CategoriasList";
+import RegistroAnimacion from "../components/iu/registroAnimacion";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
-
+const [status, setStatus] = useState(null); // null = formulario, true = éxito, false = error
+const [statusEliminar, setStatusEliminar] = useState(null); // null = nada, true = éxito, false = error
+ const usuario = JSON.parse(localStorage.getItem("user") || "null");
+const grupo = usuario?.grupo;
   const [busqueda, setBusqueda] = useState("");
 
   const [editando, setEditando] = useState(false);
@@ -93,64 +97,76 @@ const columns = [
     setModalOpen(true);
   };
 
-  const handleSubmit = async (e, setError, setFieldError) => {
-    e.preventDefault();
-    setLoading(true);
+ const handleSubmit = async (e, setError, setFieldError) => {
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      if (!formData.nombre_categoria.trim()) {
-        setError("Debes escribir el nombre de la categoría");
-        setFieldError({ nombre_categoria: true });
-        throw new Error("Validación");
-      }
-
-      if (editando) {
-        await actualizarCategoria(idEditando, formData);
-      } else {
-        await crearCategoria(formData);
-      }
-
-      await cargarCategorias();
-      setBusqueda("");
-
-      setTimeout(() => {
-        setModalOpen(false);
-      }, 700);
-    } catch (error) {
-      console.log(" ERROR COMPLETO:", error);
-      console.log(" STATUS:", error.response?.status);
-      console.log(" DATA BACKEND:", error.response?.data);
-
-      setError("Error guardando categoría");
-      throw error;
-    } finally {
-      setLoading(false);
+  try {
+    if (!formData.nombre_categoria.trim()) {
+      setError("Debes escribir el nombre de la categoría");
+      setFieldError({ nombre_categoria: true });
+      setStatus(false); // animación de error
+      return;
     }
-  };
 
-  const handleDelete = async (id_categoria) => {
-    if (!window.confirm("¿Seguro que deseas eliminar esta categoría?")) return;
-
-    try {
-      await eliminarCategoria(id_categoria);
-      await cargarCategorias();
-    } catch (error) {
-      console.error("Error eliminando:", error);
+    if (editando) {
+      await actualizarCategoria(idEditando, formData);
+    } else {
+      await crearCategoria(formData);
     }
-  };
+
+    await cargarCategorias();
+    setBusqueda("");
+
+    setStatus(true); // animación de éxito
+    setTimeout(() => {
+      setModalOpen(false);
+      setStatus(null); // resetea status
+    }, 2000);
+
+  } catch (error) {
+    console.error("Error guardando categoría:", error);
+    setError("Error guardando categoría");
+    setStatus(false); // animación de error
+    setTimeout(() => setStatus(null), 2000); // vuelve al formulario
+  } finally {
+    setLoading(false);
+  }
+};
+
+
+const handleDelete = async (id_categoria) => {
+  if (!window.confirm("¿Seguro que deseas eliminar esta categoría?")) return;
+
+  try {
+    await eliminarCategoria(id_categoria);
+    await cargarCategorias();
+
+    setStatusEliminar(true); // éxito
+    setTimeout(() => setStatusEliminar(null), 2000); // desaparece después de 2s
+  } catch (error) {
+    console.error("Error eliminando:", error);
+
+    setStatusEliminar(false); // error
+    setTimeout(() => setStatusEliminar(null), 2000);
+  }
+};
+
 
   return (
     <div className="w-full bg-gray-200 p-4">
       <div className="w-full max-w-[1200px] mx-auto">
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
-          <Button
-            type="button"
-            className="h-10 px-4 text-sm w-fit"
-            onClick={abrirCrear}
-          >
-            Añadir nueva categoría
-          </Button>
+          {grupo === "Administrador" && (
+            <Button
+              type="button"
+              className="h-10 px-4 text-sm w-fit"
+              onClick={abrirCrear}
+            >
+              Añadir nueva Categoria
+            </Button>
+          )}
 
           <div className="w-full sm:w-[320px]">
                           <Buscador busqueda={busqueda} setBusqueda={setBusqueda} placeholder="Buscar por nombre" />
@@ -160,31 +176,50 @@ const columns = [
         </div>
 
         {/* Tabla dinámica */}
-        <DataTable
-          title="Listado de Categorías"
-          columns={columns}
-          data={categoriasFiltradas}
-          onEdit={abrirEditar}
-          onDelete={(row) => handleDelete(row.id_categoria)}
-          emptyText="No hay categorías registradas."
-        />
+       <div className="relative">
+  <DataTable
+    title="Listado de Categorías"
+    columns={columns}
+    data={categoriasFiltradas}
+    onEdit={grupo === "Administrador" ? abrirEditar : null}
+    onDelete={
+      grupo === "Administrador"
+        ? (row) => handleDelete(row.id_categoria)
+        : null
+    }
+    emptyText="No hay categorías registradas."
+  />
+
+  {statusEliminar !== null && (
+    <div className="absolute inset-0 flex justify-center items-center bg-white/70 rounded-lg z-50">
+      <RegistroAnimacion success={statusEliminar} />
+    </div>
+  )}
+</div>
+
       </div>
 
       {/* Modal */}
-      <Modal
-        open={modalOpen}
-        onClose={() => setModalOpen(false)}
-        title={editando ? "Editar Categoría" : "Registrar Categoría"}
-      >
-        <Form
-          fields={fields}
-          formData={formData}
-          handleChange={handleChange}
-          handleSubmit={handleSubmit}
-          loading={loading}
-          submitText={editando ? "Actualizar" : "Guardar"}
-        />
-      </Modal>
+    
+<Modal
+  open={modalOpen}
+  onClose={() => setModalOpen(false)}
+  title={editando ? "Editar Categoría" : "Registrar Categoría"}
+>
+  {status === null ? (
+    <Form
+      fields={fields}
+      formData={formData}
+      handleChange={handleChange}
+      handleSubmit={handleSubmit} // ← aquí
+      loading={loading}
+      submitText={editando ? "Actualizar" : "Guardar"}
+    />
+  ) : (
+    <RegistroAnimacion success={status} />
+  )}
+</Modal>
+
     </div>
   );
 };

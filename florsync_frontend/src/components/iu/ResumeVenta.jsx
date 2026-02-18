@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import Button from "../iu/Button"; // Ajusta la ruta según tu estructura
+import Button from "../iu/Button";
 
 const ResumenVenta = ({
   carrito = [],
@@ -21,8 +21,11 @@ const ResumenVenta = ({
 
   const [clienteEncontrado, setClienteEncontrado] = useState(false);
 
+  // ================================
+  // TOTAL REAL DE LA VENTA
+  // ================================
   const total = carrito.reduce(
-    (acc, item) => acc + item.precio * item.cantidad,
+    (acc, item) => acc + Number(item.precio) * Number(item.cantidad),
     0
   );
 
@@ -31,6 +34,17 @@ const ResumenVenta = ({
       ? Number(efectivoRecibido || 0) - total
       : 0;
 
+  // 🔥 Validaciones del botón
+  const efectivoInsuficiente =
+    metodoPago === "efectivo" &&
+    Number(efectivoRecibido || 0) < total;
+
+  const ventaDeshabilitada =
+    carrito.length === 0 || efectivoInsuficiente;
+
+  // ================================
+  // CARRITO
+  // ================================
   const eliminarProducto = (id) => {
     setCarrito((prev) =>
       prev.filter((item) => item.id_producto !== id)
@@ -42,6 +56,9 @@ const ResumenVenta = ({
     setEfectivoRecibido("");
   };
 
+  // ================================
+  // BUSCAR CLIENTE
+  // ================================
   useEffect(() => {
     const buscarCliente = async () => {
       if (!cliente.cedula || cliente.cedula.length < 5) {
@@ -66,7 +83,7 @@ const ResumenVenta = ({
     };
 
     buscarCliente();
-  }, [cliente.cedula]);
+  }, [cliente.cedula, buscarClientePorCedula]);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -227,9 +244,15 @@ const ResumenVenta = ({
         </div>
       )}
 
+      {/* BOTÓN FINAL */}
       <Button
         onClick={() => onRealizarVenta(cliente)}
-        className="bg-blue-600 text-white px-4 py-2 rounded mt-4"
+        disabled={ventaDeshabilitada}
+        className={`px-4 py-2 rounded mt-4 text-white ${
+          ventaDeshabilitada
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-600 hover:bg-blue-700"
+        }`}
       >
         Realizar Venta
       </Button>

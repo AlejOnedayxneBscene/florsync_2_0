@@ -86,17 +86,19 @@ const Ventas = () => {
   };
 
   const [inputTemporal, setInputTemporal] = useState({});
-  const handleInputChange = (id, value) => setInputTemporal((prev) => ({ ...prev, [id]: value }));
-  const handleInputBlur = (id) => {
-    const value = Number(inputTemporal[id]);
-    if (!value || value < 1) {
-      cambiarCantidad(id, 1);
-      setInputTemporal((prev) => ({ ...prev, [id]: "1" }));
-    } else {
-      cambiarCantidad(id, value);
-      setInputTemporal((prev) => ({ ...prev, [id]: value.toString() }));
-    }
-  };
+  const handleInputChange = (id, value) => {
+  // Obtener el producto del carrito
+  const producto = carrito.find((item) => item.id_producto === id);
+  let nuevoValor = Number(value);
+
+  // Limitar entre 1 y stock_total
+  if (nuevoValor > producto.stock_total) nuevoValor = producto.stock_total;
+  if (nuevoValor < 1) nuevoValor = 1;
+
+  setInputTemporal((prev) => ({ ...prev, [id]: nuevoValor.toString() }));
+  cambiarCantidad(id, nuevoValor);
+};
+
 
   // ================================
   // REGISTRAR VENTA CON LOGS
@@ -130,17 +132,13 @@ const Ventas = () => {
     }
 
     const payload = {
-      cliente: clienteId,
-      metodo_pago: metodoPago,
-      efectivo_recibido: metodoPago === "efectivo" ? Number(efectivoRecibido) : null,
-      detalles: carrito.map((item) => ({
-        producto: item.id_producto,
-        cantidad: item.cantidad,
-        precio: item.precio,
-        total: item.precio * item.cantidad,
-      })),
-      total,
-    };
+    cliente: clienteParaVenta || null,
+    productos: carrito.map((item) => ({
+      id_producto: item.id_producto,
+      cantidad: item.cantidad,
+    })),
+  };
+
 
     console.log("📤 Payload de la venta que se enviará al backend:", payload);
 
@@ -193,6 +191,13 @@ const Ventas = () => {
     }
   };
 
+  const stockDisponible = (producto) => {
+  const enCarrito = carrito.find(
+    (c) => c.id_producto === producto.id_producto
+  );
+  return producto.stock_total - (enCarrito?.cantidad || 0);
+};
+
   // ================================
   // FILTROS
   // ================================
@@ -220,7 +225,12 @@ const Ventas = () => {
           row.precio
         ),
     },
-    { key: "stock_total", label: "Stock", render: (row) => row.stock_total },
+      {
+    key: "stock_total",
+    label: "Stock",
+    render: (row) => stockDisponible(row),
+  }
+,
     {
       key: "venta",
       label: "Venta",
@@ -234,14 +244,28 @@ const Ventas = () => {
           <div className="flex items-center justify-center gap-2">
             <button onClick={() => disminuirCantidad(row.id_producto)} className="w-6 h-6 rounded-full bg-red-500 text-white text-sm">−</button>
             <input
-              type="number"
-              value={inputTemporal[row.id_producto] ?? productoEnCarrito.cantidad}
-              min="1"
-              max={row.stock_total}
-              onChange={(e) => handleInputChange(row.id_producto, e.target.value)}
-              onBlur={() => handleInputBlur(row.id_producto)}
-              className="w-10 text-center border rounded text-sm"
-            />
+  type="number"
+  min="1"
+  max={row.stock_total}
+  value={inputTemporal[row.id_producto] ?? productoEnCarrito.cantidad.toString()}
+  onChange={(e) => {
+    const val = e.target.value;
+    // Permitimos temporalmente vacíos o números
+    if (/^\d*$/.test(val)) {
+      setInputTemporal((prev) => ({ ...prev, [row.id_producto]: val }));
+    }
+  }}
+  onBlur={() => {
+    let val = Number(inputTemporal[row.id_producto]);
+    if (!val || val < 1) val = 1;
+    if (val > row.stock_total) val = row.stock_total;
+
+    cambiarCantidad(row.id_producto, val);
+    setInputTemporal((prev) => ({ ...prev, [row.id_producto]: val.toString() }));
+  }}
+  className="w-10 text-center border rounded text-sm"
+/>
+
             <button
               onClick={() => aumentarCantidad(row.id_producto)}
               disabled={productoEnCarrito.cantidad >= row.stock_total}
