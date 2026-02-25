@@ -140,8 +140,29 @@ return (
 
               <p className="text-2xl font-extrabold text-green-600 mb-4">
                 ${formatearNumero(venta.total)}
+                
               </p>
+<div className="bg-yellow-50 border border-yellow-100 rounded-lg p-3 mb-3 text-sm">
+                <p>
+                  <span className="font-semibold">Método de pago:</span>{" "}
+                  {venta.metodo_pago?.toUpperCase()}
+                </p>
 
+                {venta.metodo_pago === "efectivo" && venta.efectivo_recibido && (
+                  <>
+                    <p>
+                      <span className="font-semibold">Efectivo recibido:</span>{" "}
+                      {formatearNumero(venta.efectivo_recibido)}
+                    </p>
+                    <p>
+                      <span className="font-semibold">Cambio:</span>{" "}
+                      {formatearNumero(
+                        Number(venta.efectivo_recibido) - Number(venta.total)
+                      )}
+                    </p>
+                  </>
+                )}
+              </div>
               {/*  USUARIO */}
               {usuario && (
                 <div className="bg-blue-50 border border-blue-100 rounded-lg p-3 mb-3 text-sm">

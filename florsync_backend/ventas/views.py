@@ -11,11 +11,9 @@ from productos.models import Producto
 from clientes.models import Clientes
 
 
-# =============================
 # REALIZAR VENTA
-# =============================
 @api_view(["POST"])
-@permission_classes([EsAdminOVendedor])  # 🔥 SOLO ADMIN Y VENDEDOR
+@permission_classes([EsAdminOVendedor])  
 @transaction.atomic
 def realizar_venta(request):
     try:
@@ -23,6 +21,8 @@ def realizar_venta(request):
         data = request.data
         cliente_data = data.get("cliente")
         productos = data.get("productos", [])
+        metodo_pago = data.get("metodo_pago", "efectivo")
+        efectivo_recibido = data.get("efectivo_recibido")
 
         if not productos:
             return Response(
@@ -32,9 +32,7 @@ def realizar_venta(request):
 
         cliente = None
 
-        # -------------------------
-        # PROCESAR CLIENTE
-        # -------------------------
+       
         if cliente_data:
 
             if isinstance(cliente_data, int):
@@ -60,19 +58,17 @@ def realizar_venta(request):
                         cliente.compras += 1
                         cliente.save()
 
-        # -------------------------
-        # CREAR VENTA
-        # -------------------------
+        
         venta = Venta.objects.create(
             cliente=cliente,
-            usuario=request.user
+            usuario=request.user,
+            metodo_pago=metodo_pago,
+            efectivo_recibido=efectivo_recibido if metodo_pago == "efectivo" else None
         )
 
         total_venta = 0
 
-        # -------------------------
-        # PRODUCTOS
-        # -------------------------
+        
         for item in productos:
 
             id_producto = int(item.get("id_producto"))
@@ -122,11 +118,9 @@ def realizar_venta(request):
         )
 
 
-# =============================
 # OBTENER VENTAS
-# =============================
 @api_view(["GET"])
-@permission_classes([EsAdminOVendedor])  # 🔥 SOLO ROLES PERMITIDOS
+@permission_classes([EsAdminOVendedor])  
 def obtener_ventas(request):
 
     fecha = request.query_params.get("fecha")
@@ -159,6 +153,8 @@ def obtener_ventas(request):
             "id_venta": venta.id_venta,
             "fecha": venta.fecha,
             "total": venta.total,
+            "metodo_pago": venta.metodo_pago,
+            "efectivo_recibido": venta.efectivo_recibido,
             "cliente": {
                 "nombre_cliente": venta.cliente.nombre_cliente
                 if venta.cliente else "Anónimo",

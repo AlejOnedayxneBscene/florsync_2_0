@@ -1,17 +1,28 @@
-import { NavLink } from "react-router-dom";
+import { useAuth } from "../components/AuthContext";
+import menuItems from "../menuItems";
+import SidebarItem from "./SidebarItem";
 
-export default function SidebarItem({ item, closeSidebar }) {
+export default function Sidebar({ closeSidebar }) {
+  const { user } = useAuth(); // tu user debe tener 'rol'
+
+  // 🔹 Filtrar solo los items permitidos según el rol
+  const filteredMenu = menuItems.filter(item => 
+    item.roles.includes(user?.rol)
+  );
+
   return (
-    <NavLink
-      to={item.path}
-      onClick={closeSidebar}
-      className={({ isActive }) =>
-        `flex items-center gap-3 px-3 py-2 rounded-md transition
-        ${isActive ? "bg-gray-700" : "hover:bg-gray-700"}`
-      }
-    >
-      {item.icon && <item.icon size={20} />}
-      <span>{item.name}</span>
-    </NavLink>
+    <div className="p-4 w-64 bg-gray-800 text-white h-screen">
+      {filteredMenu.map(item => (
+        <div key={item.path}>
+          {/* Item principal */}
+          <SidebarItem item={item} closeSidebar={closeSidebar} />
+
+          {/* Sub-items si los tiene */}
+          {item.children?.map(child => (
+            <SidebarItem key={child.path} item={child} closeSidebar={closeSidebar} />
+          ))}
+        </div>
+      ))}
+    </div>
   );
 }

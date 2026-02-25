@@ -2,9 +2,11 @@ import { useEffect, useRef } from "react";
 import menuItems from "../../data/menuItems";
 import SidebarItem from "./SliderBarItems";
 import NameApp from "./NameApp";
+import { useAuth } from "../AuthContext";
 
 export default function SideBar({ open, setOpen }) {
   const ref = useRef(null);
+  const { user, isAuthLoaded } = useAuth();
 
   useEffect(() => {
     if (!open) return;
@@ -20,9 +22,19 @@ export default function SideBar({ open, setOpen }) {
       document.removeEventListener("mousedown", handleClickOutside);
   }, [open, setOpen]);
 
+  if (!isAuthLoaded) return null;
+
+const userGrupo = user?.grupo || "";
+
+const filteredItems = menuItems.filter((item) => {
+  if (item.name === "Historial") {
+    return userGrupo === "Administrador";
+  }
+  return true;
+});
+
   return (
     <>
-      {/* Overlay */}
       {open && (
         <div
           className="fixed inset-0 bg-black/30 z-30"
@@ -30,7 +42,6 @@ export default function SideBar({ open, setOpen }) {
         />
       )}
 
-      {/* Sidebar */}
       <aside
         ref={ref}
         className={`fixed top-14 left-0 h-[calc(100%-3.5rem)] w-64
@@ -42,7 +53,7 @@ export default function SideBar({ open, setOpen }) {
         <h2 className="text-xl font-bold mb-4">Menú</h2>
 
         <nav className="flex flex-col gap-2">
-          {menuItems.map((item) => (
+          {filteredItems.map((item) => (
             <SidebarItem
               key={item.name}
               item={item}
@@ -50,11 +61,10 @@ export default function SideBar({ open, setOpen }) {
             />
           ))}
         </nav>
-      <div className="absolute bottom-4 ">
 
-        <NameApp text="FlorSync 2.0" className="text-xl font-bold"/>
+        <div className="absolute bottom-4">
+          <NameApp text="FlorSync 2.0" className="text-xl font-bold" />
         </div>
-
       </aside>
     </>
   );

@@ -76,33 +76,37 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [isAuthenticated]);
 
-const login = (access, refresh, user) => {
+const [user, setUser] = useState(null);
+
+const login = (access, refresh, usuario) => {
   localStorage.setItem("access", access);
   localStorage.setItem("refresh", refresh);
+  localStorage.setItem("user", JSON.stringify(usuario));
 
-  // 🔥 ESTA LÍNEA FALTABA
-  localStorage.setItem("user", JSON.stringify(user));
-
+  setUser(usuario); // 🔹 guardar usuario en estado
   setIsAuthenticated(true);
   resetInactivityTimer();
   startTracking();
 };
 
-
 const logout = () => {
+  setUser(null); // 🔹 limpiar usuario
   setIsAuthenticated(false);
   stopTracking();
   localStorage.removeItem("access");
   localStorage.removeItem("refresh");
+  localStorage.removeItem("user");
   window.location.href = "/login";
 };
 
+
   return (
     <AuthContext.Provider
-      value={{ isAuthenticated, login, logout, isAuthLoaded }}
-    >
-      {children}
-    </AuthContext.Provider>
+  value={{ isAuthenticated, login, logout, isAuthLoaded, user }}
+>
+  {children}
+</AuthContext.Provider>
+
   );
 };
 

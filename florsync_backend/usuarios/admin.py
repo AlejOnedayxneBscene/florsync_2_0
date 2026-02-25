@@ -4,9 +4,7 @@ from django import forms
 from .models import Usuario
 
 
-# =============================
-# FORM CREAR USUARIO
-# =============================
+
 class CustomUsuarioCreationForm(forms.ModelForm):
     password = forms.CharField(widget=forms.PasswordInput, required=True)
 
@@ -31,41 +29,37 @@ class CustomUsuarioCreationForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-
         user.set_password(self.cleaned_data["password"])
-
+        
+        # Generar username
         nombre = (user.first_name or "").lower()
         cedula = user.cedula[-4:] if user.cedula else ""
         user.username = f"{nombre}{cedula}"
 
         if commit:
-            user.save()
+            user.save()  # primero guardamos el usuario
+
+           
+            self.save_m2m() 
 
             grupo = user.groups.first()
-
             if grupo and grupo.name == "Administrador":
                 user.is_staff = True
             else:
                 user.is_staff = False
                 user.is_superuser = False
-
-            user.save()
-
+            user.save()  # guardamos nuevamente los cambios
         return user
 
 
-# =============================
-# FORM EDITAR
-# =============================
+
 class CustomUsuarioChangeForm(forms.ModelForm):
     class Meta:
         model = Usuario
         fields = "__all__"
 
 
-# =============================
-# ADMIN
-# =============================
+
 @admin.register(Usuario)
 class CustomUsuarioAdmin(UserAdmin):
     add_form = CustomUsuarioCreationForm
@@ -110,15 +104,22 @@ class CustomUsuarioAdmin(UserAdmin):
     get_grupo.short_description = "Grupo"
 
     def save_model(self, request, obj, form, change):
-        grupo = obj.groups.first()
+    # Primero guardar el usuario
+        obj.save()
 
+        # Guardar los ManyToMany del form
+        form.save_m2m()  # ahora M2M existe
+
+        # Revisar el grupo y asignar permisos
+        grupo = obj.groups.first()
         if grupo and grupo.name == "Administrador":
             obj.is_staff = True
         else:
             obj.is_staff = False
             obj.is_superuser = False
 
-        super().save_model(request, obj, form, change)
+        # Guardamos los cambios finales
+        obj.save()
 
     def get_form(self, request, obj=None, **kwargs):
         form = super().get_form(request, obj, **kwargs)

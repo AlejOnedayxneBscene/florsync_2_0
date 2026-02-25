@@ -23,9 +23,7 @@ const Ventas = () => {
   const [ventaSuccess, setVentaSuccess] = useState(null);
   const [clienteParaVenta, setClienteParaVenta] = useState(null);
 
-  // ================================
   // CARGAR PRODUCTOS Y CATEGORÍAS
-  // ================================
   useEffect(() => {
     const cargarDatos = async () => {
       try {
@@ -47,9 +45,7 @@ const Ventas = () => {
     cargarDatos();
   }, []);
 
-  // ================================
   // CARRITO
-  // ================================
   const agregarAlCarrito = (producto) => {
     if (carrito.find((item) => item.id_producto === producto.id_producto)) return;
     setCarrito([...carrito, { ...producto, cantidad: 1 }]);
@@ -100,9 +96,7 @@ const Ventas = () => {
 };
 
 
-  // ================================
   // REGISTRAR VENTA CON LOGS
-  // ================================
   const handleVenta = async ({ cliente }) => {
     if (carrito.length === 0) {
       console.warn("⚠️ Carrito vacío, no se puede registrar venta");
@@ -121,23 +115,29 @@ const Ventas = () => {
       console.log("🔍 Buscando cliente por cédula:", cliente.cedula);
       const existente = await buscarClientePorCedula(cliente.cedula);
       if (existente) {
-        console.log("✅ Cliente existente encontrado:", existente);
+        console.log(" Cliente existente encontrado:", existente);
         clienteId = existente.id_cliente;
       } else {
-        console.log("➕ Cliente no existe, creando nuevo cliente:", cliente);
+        console.log(" Cliente no existe, creando nuevo cliente:", cliente);
         const nuevo = await crearCliente(cliente);
         clienteId = nuevo.id_cliente;
-        console.log("✅ Cliente creado:", nuevo);
+        console.log(" Cliente creado:", nuevo);
       }
     }
 
-    const payload = {
-    cliente: clienteParaVenta || null,
-    productos: carrito.map((item) => ({
-      id_producto: item.id_producto,
-      cantidad: item.cantidad,
-    })),
-  };
+   const payload = {
+  cliente: clienteParaVenta || null,
+  metodo_pago: metodoPago,
+  efectivo_recibido:
+    metodoPago === "efectivo"
+      ? Number(efectivoRecibido)
+      : null,
+  total: total,
+  productos: carrito.map((item) => ({
+    id_producto: item.id_producto,
+    cantidad: item.cantidad,
+  })),
+};
 
 
     console.log("📤 Payload de la venta que se enviará al backend:", payload);
@@ -164,9 +164,6 @@ const Ventas = () => {
     setEfectivoRecibido("");
   };
 
-  // ================================
-  // MODAL CONFIRMACIÓN
-  // ================================
   const handleConfirmVenta = (cliente) => {
     if (carrito.length === 0) return;
     console.log("🚀 Abrir modal de confirmación con cliente:", cliente);
@@ -198,9 +195,7 @@ const Ventas = () => {
   return producto.stock_total - (enCarrito?.cantidad || 0);
 };
 
-  // ================================
   // FILTROS
-  // ================================
   const productosFiltrados = productos.filter((producto) => {
     const coincideNombre =
       producto.nombre.toLowerCase().includes(busqueda.toLowerCase()) ||
@@ -210,9 +205,7 @@ const Ventas = () => {
     return coincideNombre && coincideCategoria;
   });
 
-  // ================================
   // COLUMNAS TABLA
-  // ================================
   const columns = [
     { key: "id_producto", label: "ID" },
     { key: "nombre", label: "Nombre" },

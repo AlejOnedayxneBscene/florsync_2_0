@@ -51,7 +51,7 @@ login(
     grupo: data.grupo,
   }
 );
-  navigate("/inventario");
+  navigate("/dashboard");
 } else {
   setError("Usuario o contraseña incorrectos");
 }

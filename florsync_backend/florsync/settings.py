@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     'productos',
     'clientes',
     'ventas',
+    'auditoria',
 
     # Otras apps personalizadas...
 ]

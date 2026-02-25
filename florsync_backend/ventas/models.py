@@ -3,7 +3,7 @@ from decimal import Decimal
 
 class Venta(models.Model):
     id_venta = models.AutoField(primary_key=True)
-
+    metodo_pago = models.CharField(max_length=50, null=True, blank=True)    
     cliente = models.ForeignKey(
         "clientes.Clientes",
         on_delete=models.SET_NULL,
@@ -12,6 +12,12 @@ class Venta(models.Model):
         related_name="ventas"
     )
 
+    efectivo_recibido = models.DecimalField(
+        max_digits=12,
+        decimal_places=2,
+        null=True,
+        blank=True
+    )
     fecha = models.DateTimeField(auto_now_add=True)
 
     usuario = models.ForeignKey(

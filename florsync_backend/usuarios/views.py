@@ -74,7 +74,6 @@ class ProductoViewSet(ModelViewSet):
 
         return [EsAdminOVendedor()]
 
-    # 🔥 BLOQUEO REAL
     def perform_create(self, serializer):
         if not self.request.user.groups.filter(
             name="Administrador"

@@ -243,7 +243,7 @@ const handleInputBlur = (id) => {
     }
   };
 
-  // 🔹 Eliminar producto
+  //  Eliminar producto
   const handleDelete = async (id_producto) => {
     if (!window.confirm("¿Seguro que deseas eliminar este producto?")) return;
     try {

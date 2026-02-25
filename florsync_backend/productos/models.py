@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 
 
 class Producto(models.Model):
@@ -18,6 +19,22 @@ class Producto(models.Model):
 
     activo = models.BooleanField(default=True)
 
+    # 🔥 AUDITORÍA
+    creado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="productos_creados"
+    )
+
+    editado_por = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        null=True,
+        blank=True,
+        on_delete=models.SET_NULL,
+        related_name="productos_editados"
+    )
+
     def __str__(self):
         return self.nombre
-
