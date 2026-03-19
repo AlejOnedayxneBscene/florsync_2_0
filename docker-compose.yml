@@ -1,23 +1,21 @@
 services:
   db:
-    image: postgres:15
+    build: ./db
     restart: always
-    environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: florsync123
-      POSTGRES_DB: FlorsyncBD
-      SUPABASE_URL: https://fhnookveztdjpygotqpp.supabase.co
-      SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZobm9va3ZlenRkanB5Z290cXBwIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc3MTk4OTgwMiwiZXhwIjoyMDg3NTY1ODAyfQ.r1MSy5utXVwPEnKKoIJXQzUFd6N7okbNxRYvDYjBVCQ
+    env_file:
+      - .env
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./wal-archive:/wal-archive
+      - ./base-backup:/basebackup
+      - ./scripts:/scripts
     command: >
       postgres
       -c wal_level=replica
       -c archive_mode=on
-      -c archive_command='bash /wal-archive/archive.sh %p %f'
+      -c archive_command='bash /scripts/archive.sh %p %f'
   backend:
     build: ./florsync_backend  
     restart: always

@@ -80,6 +80,7 @@ login(
         formData={formData}
         handleChange={handleChange}
         handleSubmit={handleSubmit}
+        setFormData={setFormData}
         loading={loading}
       />
     </div>

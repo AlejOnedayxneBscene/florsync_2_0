@@ -4,7 +4,7 @@ import Title from "./Title";
 import NameApp from "./NameApp";
 import { useState } from "react";
 
-export default function LoginForms({ formData, handleChange, handleSubmit, loading }) {
+export default function LoginForms({ formData, handleChange, setFormData, handleSubmit, loading }) {
 
 
   const [fieldError, setFieldError] = useState({}); // Campos vacíos
@@ -27,7 +27,10 @@ export default function LoginForms({ formData, handleChange, handleSubmit, loadi
     setError("");
 
     handleSubmit(e, setError, setFieldError); // Pasamos las funciones de error al componente padre
-  };
+setFormData({
+  ...formData,
+  password: ""
+});  };
   
   return (
    <div className="w-full md:w-1/2 flex flex-col justify-center items-center gap-8 text-white h-full">
@@ -39,19 +42,21 @@ export default function LoginForms({ formData, handleChange, handleSubmit, loadi
 
   <form onSubmit={onSubmit} className="flex flex-col gap-15 w-full max-w-sm items-center">
     <Input
-      type="text"
-      name="id_usuario"
-      placeholder="Digite su usuario"
-      value={formData.id_usuario}
-      onChange={handleChange}
-    />
+  type="text"
+  name="id_usuario"
+  placeholder="Digite su usuario"
+  value={formData.id_usuario}
+  onChange={handleChange}
+  autoComplete="off"
+/>
     <Input
-      type="password"
-      name="password"
-      placeholder="Digite su contraseña"
-      value={formData.password}
-      onChange={handleChange}
-    />
+  type="password"
+  name="password"
+  placeholder="Digite su contraseña"
+  value={formData.password}
+  onChange={handleChange}
+  autoComplete="new-password"
+/>
 
     <Button type="submit" loading={loading}>
       Iniciar sesión

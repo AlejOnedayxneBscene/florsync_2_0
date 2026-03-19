@@ -31,6 +31,8 @@ const grupo = usuario?.grupo;
     nombre_categoria: "",
   });
 
+  console.log("Usuario:", usuario);
+console.log("Grupo:", grupo);
   //  campos dinámicos
   const fields = [
     {
@@ -110,10 +112,10 @@ const columns = [
     }
 
     if (editando) {
-      await actualizarCategoria(idEditando, formData);
-    } else {
-      await crearCategoria(formData);
-    }
+  await actualizarCategoria(idEditando, formData); // usa /categorias/${id}/
+} else {
+  await crearCategoria(formData); // usa /categorias/
+}
 
     await cargarCategorias();
     setBusqueda("");

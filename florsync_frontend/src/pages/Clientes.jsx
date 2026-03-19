@@ -14,6 +14,7 @@ import { AnimatePresence } from "framer-motion";
 import RegistroAnimacion from "../components/iu/registroAnimacion";
 const Clientes = () => {
 
+  
 const [status, setStatus] = useState(null); // null = formulario, true = éxito, false = error
   const [clientes, setClientes] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -32,6 +33,7 @@ const grupo = usuario?.grupo;
     correo: "",
   });
 
+  
   // Campos para el formulario (sin 'compras')
   const fields = [
     { name: "nombre_cliente", label: "Nombre", type: "text" },
@@ -103,23 +105,34 @@ const grupo = usuario?.grupo;
   // Guardar o actualizar cliente
 const handleSubmit = async (e, setError) => {
   e.preventDefault();
+  setStatus(null);
+
+  // Validación básica
+ if (!formData.nombre_cliente.trim() || !formData.cedula.trim()) {
+  throw new Error("Cédula y Nombre son obligatorios");
+}
+
+  // Validación duplicado (ANTES de loading)
+  if (!editando) {
+    const existe = clientes.some(
+      (c) => c.cedula === formData.cedula.trim()
+    );
+
+    if (existe) {
+  throw new Error("Cliente ya existe");
+}
+  }
+
   setLoading(true);
 
   try {
-    if (!formData.nombre_cliente.trim() || !formData.cedula.trim()) {
-      setError("Cédula y Nombre son obligatorios");
-      setLoading(false);
-      return;
-    }
-
-  const payload = {
-  cedula: formData.cedula.trim(),
-  nombre_cliente: formData.nombre_cliente.trim(),
-  direccion: formData.direccion.trim() || null,
-  telefono: formData.telefono.trim() || null,
-  correo: formData.correo.trim() || null,
-};
-
+    const payload = {
+      cedula: formData.cedula.trim(),
+      nombre_cliente: formData.nombre_cliente.trim(),
+      direccion: formData.direccion.trim() || null,
+      telefono: formData.telefono.trim() || null,
+      correo: formData.correo.trim() || null,
+    };
 
     if (editando) {
       await actualizarCliente(idEditando, payload);
@@ -129,20 +142,30 @@ const handleSubmit = async (e, setError) => {
 
     await cargarClientes();
     setBusqueda("");
-    setStatus(true); // ← éxito
+
+    setStatus(true);
+
     setTimeout(() => {
-      setModalOpen(false); // cierra modal
-      setStatus(null); // reset status
+      setModalOpen(false);
+      setStatus(null);
     }, 2000);
+
   } catch (error) {
-    console.error("Error guardando clientes:", error);
-    setStatus(false); // ← error
-    setTimeout(() => setStatus(null), 2000); // permite reintento
+    console.error("Backend dice:", error.response?.data);
+
+    // 👇 IMPORTANTE: manejar duplicado del backend
+    if (error.response?.data?.message?.includes("duplicate")) {
+      setStatus(false);
+    } else {
+      setStatus(false);
+    }
+
+    setTimeout(() => setStatus(null), 2000);
+
   } finally {
     setLoading(false);
   }
 };
-
 
   // Eliminar cliente
 const handleDelete = async (cedula) => {

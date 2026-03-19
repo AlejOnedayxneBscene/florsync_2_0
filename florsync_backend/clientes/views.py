@@ -12,6 +12,7 @@ from auditoria.mixins import AuditMixin
 class ClienteViewSet(AuditMixin, ModelViewSet):
     serializer_class = ClienteSerializer
     queryset = Clientes.objects.filter(activo=True)
+    lookup_field = "cedula"  
 
     def get_permissions(self):
 
@@ -30,6 +31,7 @@ class ClienteViewSet(AuditMixin, ModelViewSet):
             )
 
         cliente_existente = Clientes.objects.filter(cedula=cedula).first()
+
         if cliente_existente and not cliente_existente.activo:
 
             datos_anteriores = {
@@ -56,7 +58,6 @@ class ClienteViewSet(AuditMixin, ModelViewSet):
             cliente_existente.activo = True
             cliente_existente.save()
 
-            # 🔥 REGISTRAR AUDITORÍA
             self._registrar_log(
                 accion="UPDATE",
                 instance=cliente_existente,
@@ -71,13 +72,32 @@ class ClienteViewSet(AuditMixin, ModelViewSet):
             serializer = self.get_serializer(cliente_existente)
             return Response(serializer.data)
 
-        # 🔹 Si existe y está activo → error
         if cliente_existente and cliente_existente.activo:
             return Response(
                 {"error": "Ya existe un cliente activo con esa cédula"},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        # 🔹 Si no existe → crear normal
         return super().create(request, *args, **kwargs)
 
+    # ✅ AQUÍ VA (FUERA DE CREATE)
+    def destroy(self, request, *args, **kwargs):
+        cliente = self.get_object()
+        cliente.activo = False
+        cliente.save()
+
+        self._registrar_log(
+            accion="DELETE",
+            instance=cliente,
+            cambios={
+                "activo": {
+                    "antes": "True",
+                    "despues": "False"
+                }
+            }
+        )
+
+        return Response(
+            {"mensaje": "Cliente eliminado correctamente"},
+            status=status.HTTP_200_OK
+        )

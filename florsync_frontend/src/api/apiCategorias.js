@@ -11,16 +11,14 @@ export const crearCategoria = async (data) => {
 };
 
 export const actualizarCategoria = async (id, data) => {
-  const res = await api.put(`/categorias/${id}/editar/`, data);
+  const res = await api.put(`/categorias/${id}/`, data); // usa id directo
   return res.data;
 };
 
 export const eliminarCategoria = async (id) => {
-  const res = await api.delete(`/categorias/${id}/eliminar/`);
+  const res = await api.delete(`/categorias/${id}/`); // usa id directo
   return res.data;
 };
-
-
 const cargarProductos = async () => {
   try {
     const data = await obtenerProductos();
@@ -36,3 +34,4 @@ const cargarProductos = async () => {
     console.error("Error cargando productos:", error);
   }
 };
+

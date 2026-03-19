@@ -163,19 +163,33 @@ const Form = ({
                 ${fieldError[f.name] ? "border-red-500" : "border-gray-300"}`}
             />
           ) : (
-            <input
-              type={f.type || "text"}
-              name={f.name}
-              value={typeof formData[f.name] === "string"
-                ? formData[f.name].toLowerCase()
-                : formData[f.name] ?? ""
-              }
-              onChange={(e) => handleChange(e)}
-              placeholder={f.placeholder || ""}
-              className={`w-full border rounded px-3 py-2
-                ${fieldError[f.name] ? "border-red-500" : "border-gray-300"}`}
-            />
-          )}
+              <input
+    type={f.type || "text"}
+    name={f.name}
+    value={formData[f.name] ?? ""}
+    onChange={(e) => {
+      let value = e.target.value;
+
+      // 🔥 SOLO números para cédula y teléfono
+      if (f.name === "cedula" || f.name === "telefono") {
+        value = value.replace(/\D/g, ""); // elimina todo lo que no sea número
+
+        // evitar números negativos (por si acaso)
+        if (Number(value) < 0) return;
+      }
+
+      handleChange({
+        target: {
+          name: f.name,
+          value,
+        },
+      });
+    }}
+    placeholder={f.placeholder || ""}
+    className={`w-full border rounded px-3 py-2
+      ${fieldError[f.name] ? "border-red-500" : "border-gray-300"}`}
+  />
+            )}
 
           {fieldError[f.name] && (
             <p className="text-red-500 text-sm mt-1">{fieldError[f.name]}</p>

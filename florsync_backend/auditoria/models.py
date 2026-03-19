@@ -20,7 +20,7 @@ class AuditLog(models.Model):
     accion = models.CharField(max_length=10, choices=ACCIONES)
 
     modelo = models.CharField(max_length=100)
-    objeto_id = models.IntegerField()
+    objeto_id = models.CharField(max_length=50)
     objeto_nombre = models.CharField(max_length=255, null=True, blank=True)
 
     cambios = models.JSONField(null=True, blank=True)

@@ -3,18 +3,26 @@ import { obtenerAuditoria } from "../api/apiAuditoria";
 
 export default function Historial() {
   const [logs, setLogs] = useState([]);
+  const [busqueda, setBusqueda] = useState("");
+
+  // Fecha aplicada al filtro
+  const [fecha, setFecha] = useState(
+    new Date().toISOString().split("T")[0]
+  );
+
+  // Fecha del input (antes de filtrar)
+  const [fechaFiltro, setFechaFiltro] = useState(
+    new Date().toISOString().split("T")[0]
+  );
 
   useEffect(() => {
     cargarLogs();
   }, []);
 
-const cargarLogs = async () => {
-  const data = await obtenerAuditoria();
-  console.log("DATA BACKEND:", data);
-  setLogs(data.results || data);
-};
-
-
+  const cargarLogs = async () => {
+    const data = await obtenerAuditoria();
+    setLogs(data.results || data);
+  };
 
   const colorAccion = (accion) => {
     if (accion === "CREATE") return "text-green-600";
@@ -29,37 +37,99 @@ const cargarLogs = async () => {
     if (accion === "DELETE") return "eliminó";
   };
 
- return (
-  <div className="p-6">
-    <h1 className="text-2xl font-bold mb-4">Actividad del sistema</h1>
+  const handleFiltrar = () => {
+    setFecha(fechaFiltro);
+  };
 
-    {Array.isArray(logs) ? (
-      logs.map((log) => (
-        <div key={log.id} className="bg-white shadow rounded p-4 mb-3">
-          <p className={`font-semibold ${colorAccion(log.accion)}`}>
-            {log.usuario} {textoAccion(log.accion)}{" "}
-            {log.modelo?.toLowerCase()}{" "}
-            <strong>{log.objeto_nombre}</strong>
-          </p>
+  // 🔎 FILTRO
+  const logsFiltrados = logs.filter((log) => {
+    const texto = busqueda.toLowerCase();
 
-          {log.cambios &&
-            Object.entries(log.cambios).map(([campo, valor]) => (
-              <p key={campo} className="text-sm ml-2 text-gray-700">
-                {typeof valor === "object"
-                  ? `${campo}: ${valor.antes} → ${valor.despues}`
-                  : `${campo}: ${valor}`}
-              </p>
-            ))}
+    const coincideBusqueda =
+      log.usuario?.toLowerCase().includes(texto) ||
+      log.objeto_nombre?.toLowerCase().includes(texto) ||
+      log.modelo?.toLowerCase().includes(texto);
 
-          <p className="text-xs text-gray-500 mt-2">
-            {new Date(log.fecha).toLocaleString()}
-          </p>
-        </div>
-      ))
-    ) : (
-      <p>No hay registros disponibles.</p>
-    )}
-  </div>
-);
+    const fechaLog = new Date(log.fecha).toISOString().split("T")[0];
+    const coincideFecha = fecha ? fechaLog === fecha : true;
 
+    return coincideBusqueda && coincideFecha;
+  });
+
+  return (
+    <div className="p-6 bg-gray-50 min-h-screen">
+      <h1 className="text-2xl font-bold mb-4">Actividad del sistema</h1>
+
+      {/* 🔍 FILTROS */}
+      <div className="bg-white rounded-2xl shadow-md border p-4 flex flex-col sm:flex-row gap-3 items-center mb-6">
+
+        {/* BUSCADOR */}
+        <input
+          type="text"
+          placeholder=" Buscar por usuario, producto o cliente..."
+          value={busqueda}
+          onChange={(e) => setBusqueda(e.target.value)}
+          className="w-full sm:flex-1 px-4 py-2 rounded-lg border border-gray-300 bg-white text-black placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
+        />
+
+        {/* FECHA */}
+        <input
+          type="date"
+          value={fechaFiltro}
+          onChange={(e) => setFechaFiltro(e.target.value)}
+          className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-black focus:outline-none focus:ring-2 focus:ring-teal-500 shadow-sm"
+        />
+
+        {/* BOTÓN */}
+        <button
+          onClick={handleFiltrar}
+          className="bg-teal-600 hover:bg-teal-700 text-white px-5 py-2 rounded-lg font-semibold transition shadow"
+        >
+          Filtrar
+        </button>
+
+        {/* LIMPIAR */}
+        <button
+          onClick={() => {
+            setBusqueda("");
+            setFecha("");
+            setFechaFiltro("");
+          }}
+          className="bg-gray-200 hover:bg-gray-300 text-black px-4 py-2 rounded-lg transition"
+        >
+          Limpiar
+        </button>
+      </div>
+
+      {/*  RESULTADOS */}
+      {logsFiltrados.length > 0 ? (
+        logsFiltrados.map((log) => (
+          <div key={log.id} className="bg-white shadow rounded p-4 mb-3">
+            <p className={`font-semibold ${colorAccion(log.accion)}`}>
+              {log.usuario} {textoAccion(log.accion)}{" "}
+              {log.modelo?.toLowerCase()}{" "}
+              <strong>{log.objeto_nombre}</strong>
+            </p>
+
+            {log.cambios &&
+              Object.entries(log.cambios).map(([campo, valor]) => (
+                <p key={campo} className="text-sm ml-2 text-gray-700">
+                  {typeof valor === "object"
+                    ? `${campo}: ${valor.antes} → ${valor.despues}`
+                    : `${campo}: ${valor}`}
+                </p>
+              ))}
+
+            <p className="text-xs text-gray-500 mt-2">
+              {new Date(log.fecha).toLocaleString()}
+            </p>
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-600">
+          No hay registros para esta búsqueda o fecha.
+        </p>
+      )}
+    </div>
+  );
 }
