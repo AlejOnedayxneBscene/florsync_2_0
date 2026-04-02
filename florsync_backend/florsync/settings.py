@@ -48,6 +48,8 @@ INSTALLED_APPS = [
     'clientes',
     'ventas',
     'auditoria',
+    'django_crontab',
+
 
     # Otras apps personalizadas...
 ]
@@ -103,6 +105,10 @@ DATABASES = {
 }
 
 
+SUPABASE_URL           = os.environ.get('SUPABASE_URL', '')
+SUPABASE_SERVICE_KEY   = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')  # ← nombre corregido
+SUPABASE_BACKUP_BUCKET = os.environ.get('SUPABASE_BUCKET', 'backups')     # ← nombre corregido
+
 
 # Password validation
 # https://docs.djangoproject.com/en/5.1/ref/settings/#auth-password-validators
@@ -122,7 +128,12 @@ AUTH_PASSWORD_VALIDATORS = [
     },
 ]
 
-
+CRONJOBS = [
+    ('0 */3 * * *', 'django.core.management.call_command', ['upload_wal']),
+    ('55 */3 * * *', 'django.core.management.call_command', ['force_wal']),
+    ('0 1 * * 0',   'django.core.management.call_command', ['backup_db', '--full']),
+    ('0 2 * * 1-6', 'django.core.management.call_command', ['backup_db']),
+]
 # Internationalization
 # https://docs.djangoproject.com/en/5.1/topics/i18n/
 
