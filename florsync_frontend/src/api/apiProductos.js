@@ -19,3 +19,8 @@ export const eliminarProducto = async (id) => {
   const res = await api.delete(`/productos/${id}/`);
   return res.data;
 };
+
+export const actualizarStock = async (id, nuevoStock) => {
+  const res = await api.patch(`/productos/${id}/`, { stock_total: nuevoStock });
+  return res.data;
+};

@@ -4,6 +4,7 @@ import {
   crearProducto,
   actualizarProducto,
   eliminarProducto,
+  actualizarStock,
 } from "../api/apiProductos";
 import { obtenerCategorias } from "../api/apiCategorias";
 import Modal from "../components/iu/Modal";
@@ -14,6 +15,7 @@ import Buscador from "../components/iu/Buscador";
 import FiltroCategoria from "../components/iu/FiltroCategoria";
 import RegistroAnimacion from "../components/iu/registroAnimacion";
 import { AnimatePresence } from "framer-motion";
+import ModalStock from "../components/iu/ModalStock";
 
 const Inventario = () => {
   const [productos, setProductos] = useState([]);
@@ -176,6 +178,28 @@ const handleInputChange = (id, value) => {
   cambiarCantidad(id, num);
 };
 
+// Estado del modal
+const [productoStock, setProductoStock] = useState(null);
+
+// Handler que recibe el producto y el delta (+5 o -3, etc.)
+const handleCambiarStock = async (producto, delta) => {
+  const nuevoStock = Number(producto.stock_total) + delta;
+  if (nuevoStock < producto.stock_minimo) return;
+
+  try {
+    await actualizarStock(producto.id_producto, nuevoStock);
+    setProductos((prev) =>
+      prev.map((p) =>
+        p.id_producto === producto.id_producto
+          ? { ...p, stock_total: nuevoStock }
+          : p
+      )
+    );
+  } catch (error) {
+    console.error("Error al actualizar stock:", error);
+  }
+};
+
 const handleInputBlur = (id) => {
   const value = Number(inputTemporal[id]);
   const producto = carrito.find(item => item.id_producto === id);
@@ -283,19 +307,32 @@ const handleInputBlur = (id) => {
         </div>
 
         <div className="relative">
-          <DataTable
-            title="Listado de Productos"
-            columns={columns}
-            data={productosFiltrados}
-            onEdit={grupo === "Administrador" ? abrirEditar : null}
-            onDelete={
-              grupo === "Administrador"
-                ? (row) => handleDelete(row.id_producto)
-                : null
-            }
-            emptyText="No hay productos registrados."
-
+          {/* Modal de stock */}
+        {productoStock && (
+          <ModalStock
+            producto={productoStock}
+            onClose={() => setProductoStock(null)}
+            onConfirm={handleCambiarStock}
           />
+        )}
+
+        <DataTable
+          title="Listado de Productos"
+          columns={columns}
+          data={productosFiltrados}
+          onEdit={grupo === "Administrador" ? abrirEditar : null}
+          onDelete={
+            grupo === "Administrador"
+              ? (row) => handleDelete(row.id_producto)
+              : null
+          }
+          onIncrement={
+            grupo === "Administrador"
+              ? (row) => setProductoStock(row)
+              : null
+          }
+          emptyText="No hay productos registrados."
+        />
           <AnimatePresence>
             {statusEliminar !== null && (
               <div className="absolute inset-0 flex justify-center items-center bg-white/70 rounded-lg z-50">

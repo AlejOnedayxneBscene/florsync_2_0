@@ -25,7 +25,7 @@ class Command(BaseCommand):
         BASE_DIR.mkdir(parents=True, exist_ok=True)
         TEMP_DIR.mkdir(parents=True, exist_ok=True)
 
-        self.stdout.write(f'🚀 Iniciando BASE BACKUP: {backup_name}')
+        self.stdout.write(f' Iniciando BASE BACKUP: {backup_name}')
 
         try:
             # 1. Ejecutar pg_basebackup
@@ -45,21 +45,20 @@ class Command(BaseCommand):
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'✅ Base backup completado y subido: {backup_name} | SHA256: {sha256[:12]}...'
+                    f' Base backup completado y subido: {backup_name} | SHA256: {sha256[:12]}...'
                 )
             )
 
         except subprocess.CalledProcessError as e:
             # Error específico de comandos externos (Postgres/Tar)
-            self.stderr.write(self.style.ERROR(f'❌ Error en comando externo:'))
+            self.stderr.write(self.style.ERROR(f' Error en comando externo:'))
             if e.stderr:
                 self.stderr.write(self.style.ERROR(f'Detalle: {e.stderr}'))
             raise e
         except Exception as e:
-            self.stderr.write(self.style.ERROR(f'❌ Error inesperado: {str(e)}'))
+            self.stderr.write(self.style.ERROR(f' Error inesperado: {str(e)}'))
             raise
 
-    # ------------------------------------------------------------------ #
 
     def _basebackup(self, backup_path: Path):
         """Ejecuta la extracción de datos físicos de Postgres."""
@@ -92,12 +91,11 @@ class Command(BaseCommand):
                 result.returncode, cmd, output=result.stdout, stderr=result.stderr
             )
 
-    # ------------------------------------------------------------------ #
 
     def _compress(self, backup_path: Path) -> Path:
         """Comprime el directorio del backup en un archivo .tar.gz"""
         tar_path = TEMP_DIR / f"{backup_path.name}.tar.gz"
-        self.stdout.write(f'📦 Comprimiendo backup...')
+        self.stdout.write(f' Comprimiendo backup...')
 
         cmd = [
             'tar',
@@ -111,7 +109,7 @@ class Command(BaseCommand):
         subprocess.run(cmd, check=True, capture_output=True, text=True)
         return tar_path
 
-    # ------------------------------------------------------------------ #
+    #  #
 
     def _checksum(self, filepath: Path) -> str:
         """Calcula el SHA256 para verificar integridad posterior."""
@@ -134,7 +132,7 @@ class Command(BaseCommand):
         folder = f"base/{now.strftime('%Y/%m')}"
         remote_path = f"{folder}/{name}.tar.gz"
 
-        self.stdout.write(f'☁️ Subiendo a Supabase: {remote_path}...')
+        self.stdout.write(f' Subiendo a Supabase: {remote_path}...')
 
         with open(filepath, 'rb') as f:
             client.storage.from_(bucket).upload(
@@ -153,6 +151,6 @@ class Command(BaseCommand):
                 shutil.rmtree(backup_path)
             if tar_file.exists():
                 tar_file.unlink()
-            self.stdout.write(f'🧹 Limpieza local completada.')
+            self.stdout.write(f' Limpieza local completada.')
         except Exception as e:
-            self.stderr.write(f'⚠️ No se pudo limpiar archivos temporales: {e}')
+            self.stderr.write(f' No se pudo limpiar archivos temporales: {e}')

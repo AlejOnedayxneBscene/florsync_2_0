@@ -1,8 +1,6 @@
 import api from "./axios";
 
-/* ============================
-   REGISTRAR VENTA
-============================ */
+
 export const registrarVenta = async (ventaData) => {
   try {
     console.log("📤 Enviando datos a la API:", ventaData);
@@ -27,9 +25,7 @@ export const registrarVenta = async (ventaData) => {
   }
 };
 
-/* ============================
-   OBTENER VENTAS
-============================ */
+
 export const obtenerVentas = async (fecha) => {
   try {
     const params = fecha ? { fecha } : {};
@@ -49,5 +45,29 @@ export const obtenerVentas = async (fecha) => {
         error.response?.data || "Error al obtener las ventas"
       )
     );
+  }
+};
+
+
+export const obtenerDashboard = async (view = "week", offset = 0) => {
+  try {
+    const response = await api.get("/ventas/dashboard/", {
+      params: { view, offset },  // ⬅ solo estos dos parámetros
+    });
+    return response.data;
+  } catch (error) {
+    throw new Error(JSON.stringify(error.response?.data || "Error"));
+  }
+};
+
+export const obtenerDashboardAdmin = async (view, offset) => {
+  try {
+    const res = await api.get(
+      `/ventas/dashboard-admin/?view=${view}&offset=${offset}`
+    );
+    return res.data;
+  } catch (error) {
+    console.error("🔥 Error al obtener dashboard admin:", error);
+    throw new Error("Error al obtener dashboard admin");
   }
 };

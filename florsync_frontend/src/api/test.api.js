@@ -174,3 +174,4 @@ export const obtenerInforme = async (tipo, fecha) => {
   const response = await axios.get(`http://localhost:8000/api/informe/${tipo}/`, { params });
   return response;
 };
+

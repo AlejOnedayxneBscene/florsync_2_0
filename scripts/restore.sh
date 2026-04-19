@@ -15,7 +15,7 @@ export $(grep -v '^#' .env | xargs)
 TEMP_DIR="./tmp_restore"
 DATA_DIR="./postgres_data_restore"
 
-echo "🔽 Descargando backup desde Supabase..."
+echo "Descargando backup desde Supabase..."
 mkdir -p $TEMP_DIR
 
 # Descargar usando Python/Supabase
@@ -33,18 +33,18 @@ bucket = os.environ.get('SUPABASE_BUCKET', 'backups')
 year_month = '${BACKUP_NAME}'[5:12].replace('_', '/')[:7]
 remote = f'base/{year_month}/${BACKUP_NAME}.tar.gz'
 
-print(f'📥 Descargando: {remote}')
+print(f' Descargando: {remote}')
 data = client.storage.from_(bucket).download(remote)
 with open('/tmp/restore/${BACKUP_NAME}.tar.gz', 'wb') as f:
     f.write(data)
-print('✅ Descarga completa')
+print(' Descarga completa')
 "
 
-echo "🗑️  Limpiando volumen de Postgres..."
+echo " Limpiando volumen de Postgres..."
 docker volume rm florsync_2_0_postgres_data 2>/dev/null || true
 docker volume create florsync_2_0_postgres_data
 
-echo "📦 Extrayendo backup en el volumen..."
+echo " Extrayendo backup en el volumen..."
 docker run --rm \
   -v florsync_2_0_postgres_data:/var/lib/postgresql/data \
   -v $(pwd)/$TEMP_DIR:/tmp/restore \
@@ -54,7 +54,7 @@ docker run --rm \
     tar -xzf /tmp/restore/${BACKUP_NAME}.tar.gz -C /var/lib/postgresql/data --strip-components=1
   "
 
-echo "🧹 Limpiando temporales..."
+echo " Limpiando temporales..."
 rm -rf $TEMP_DIR
 
-echo "✅ Restore completado. Ahora corre: docker compose up"
+echo " Restore completado. Ahora corre: docker compose up"

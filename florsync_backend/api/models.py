@@ -55,3 +55,4 @@ class ReporteProductosVendidos(models.Model):
 
     def __str__(self):
         return f"Reporte {self.reporte.id_reporte} - Producto {self.producto_mas_vendido}"
+    

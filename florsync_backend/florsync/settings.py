@@ -153,19 +153,32 @@ CORS_ALLOWED_ORIGINS = [
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
 
-STATIC_URL = 'static/'
+import ssl
+import certifi
 
+# Parchear SSL globalmente para usar certifi
+ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())
 
-STATICFILES_DIRS = [ # El directorio donde Vite construye los archivos
-]
+# Email
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = "smtp.gmail.com"
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = "soporteflorsync@gmail.com"
+EMAIL_HOST_PASSWORD = "lmrc pazi pmbk uoqk"
+DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
+STATIC_URL = '/static/'
+STATIC_ROOT = BASE_DIR / "staticfiles"
+STATICFILES_DIRS = []
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.1/ref/settings/#default-auto-field
 
-STATIC_ROOT = BASE_DIR / "staticfiles"
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
 ]
+
+
 
 CORS_ALLOW_CREDENTIALS = True
 

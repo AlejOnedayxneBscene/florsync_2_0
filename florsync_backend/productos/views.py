@@ -9,7 +9,7 @@ class ProductoViewSet(AuditMixin, ModelViewSet):
     serializer_class = ProductoSerializer
     queryset = Producto.objects.filter(activo=True)
 
-    # 🔥 permisos por acción
+    #  permisos por acción
     def get_permissions(self):
 
         if self.action in ["create", "update", "partial_update", "destroy"]:

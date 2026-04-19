@@ -9,17 +9,17 @@ while true; do
   NOW=$(date +%s)
 
   if [ ! -f "$LAST" ]; then
-    echo "📦 Primer backup..."
+    echo " Primer backup..."
     python manage.py basebackup && date +%s > "$LAST"
   else
     LAST_TIME=$(cat "$LAST")
     DIFF=$((NOW - LAST_TIME))
     if [ "$DIFF" -ge "$INTERVAL" ]; then
-      echo "📦 Han pasado 3 días, ejecutando backup..."
+      echo " Han pasado 3 días, ejecutando backup..."
       python manage.py basebackup && date +%s > "$LAST"
     else
       REMAINING=$(( (INTERVAL - DIFF) / 3600 ))
-      echo "⏳ Próximo backup en ~${REMAINING}h"
+      echo " Próximo backup en ~${REMAINING}h"
     fi
   fi
 

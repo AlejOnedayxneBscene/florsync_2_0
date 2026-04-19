@@ -3,14 +3,19 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.db import transaction
 from django.shortcuts import get_object_or_404
+from django.db.models import Sum, F, ExpressionWrapper, DecimalField
 
 from usuarios.permissions import EsAdminOVendedor
-
+from rest_framework.permissions import IsAuthenticated 
+from django.utils import timezone
 from .models import Venta, DetalleVenta
 from productos.models import Producto
 from clientes.models import Clientes
-
-
+from datetime import timedelta
+from django.db.models import Sum, Count
+from django.db.models.functions import TruncDate
+from django.utils import timezone
+from django.db.models.functions import TruncDate, TruncMonth 
 # REALIZAR VENTA
 @api_view(["POST"])
 @permission_classes([EsAdminOVendedor])  
@@ -171,3 +176,229 @@ def obtener_ventas(request):
         })
 
     return Response(data)
+
+from django.utils.timezone import localdate
+
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard(request):
+    from dateutil.relativedelta import relativedelta
+
+    view = request.GET.get("view", "week")
+    offset = int(request.GET.get("offset", 0))
+    today = localdate()
+
+    if view == "day":
+        start = today + timedelta(days=offset)
+        end = start
+    elif view == "week":
+        start = (today - timedelta(days=today.weekday())) + timedelta(weeks=offset)
+        end = start + timedelta(days=6)
+    elif view == "month":
+        year = today.year + offset
+        start = today.replace(year=year, month=1, day=1)
+        end = today.replace(year=year, month=12, day=31)
+
+
+
+    ventas_qs = Venta.objects.filter(
+        usuario=request.user,
+        fecha__date__gte=start,
+        fecha__date__lte=end,
+    )
+
+    chart_data = generar_chart_data(ventas_qs, view, start, today)
+
+    totals = ventas_qs.aggregate(
+        total_orders=Count("id_venta"),
+        total_sales=Sum("total")
+    )
+
+    top_products = list(
+        DetalleVenta.objects
+        .filter(venta__in=ventas_qs)
+        .values('producto__nombre')
+        .annotate(
+            total_vendido=Sum('cantidad'),
+            total_ingresos=Sum(
+                ExpressionWrapper(F('cantidad') * F('precio'), output_field=DecimalField())
+            )
+        )
+        .order_by('-total_vendido')[:5]
+    )
+
+    return Response({
+        "summary": {
+            "total_orders": totals["total_orders"] or 0,
+            "total_sales": float(totals["total_sales"] or 0),
+        },
+        "chart_data": chart_data,
+        "period": {"start": str(start), "end": str(end)},
+        "top_products": [
+            {
+                "nombre": item["producto__nombre"],
+                "total_vendido": item["total_vendido"],
+                "total_ingresos": float(item["total_ingresos"] or 0),
+            }
+            for item in top_products
+        ],
+    })
+
+@api_view(["GET"])
+@permission_classes([IsAuthenticated])
+def dashboard_admin(request):
+    from dateutil.relativedelta import relativedelta
+
+    view = request.GET.get("view", "week")
+    offset = int(request.GET.get("offset", 0))
+    today = localdate()
+
+    if view == "day":
+        start = today + timedelta(days=offset)
+        end = start
+    elif view == "week":
+        start = (today - timedelta(days=today.weekday())) + timedelta(weeks=offset)
+        end = start + timedelta(days=6)
+    elif view == "month":
+        year = today.year + offset
+        start = today.replace(year=year, month=1, day=1)
+        end = today.replace(year=year, month=12, day=31)
+
+    ventas_qs = Venta.objects.filter(
+        fecha__date__gte=start,
+        fecha__date__lte=end,
+    )
+
+    chart_data = generar_chart_data(ventas_qs, view, start, today)
+
+    totals = ventas_qs.aggregate(
+        total_orders=Count("id_venta"),
+        total_sales=Sum("total")
+    )
+
+    top_sellers = list(
+    ventas_qs
+    .filter(usuario__isnull=False)
+    .values("usuario__id", "usuario__username")
+    .annotate(
+        total_sales=Sum("total"),
+        total_orders=Count("id_venta")
+    )
+    .order_by("-total_sales")[:5]
+)
+    print("TOP SELLERS:", top_sellers)
+    top_products = list(
+        DetalleVenta.objects
+        .filter(venta__in=ventas_qs)
+        .values('producto__nombre')
+        .annotate(
+            total_vendido=Sum('cantidad'),
+            total_ingresos=Sum(
+                ExpressionWrapper(F('cantidad') * F('precio'), output_field=DecimalField())
+            )
+        )
+        .order_by('-total_vendido')[:5]
+    )
+
+    return Response({
+        "summary": {
+            "total_orders": totals["total_orders"] or 0,
+            "total_sales": float(totals["total_sales"] or 0),
+        },
+        "chart_data": chart_data,
+        "period": {"start": str(start), "end": str(end)},
+
+        "top_products": [
+            {
+                "nombre": item["producto__nombre"],
+                "total_vendido": item["total_vendido"],
+                "total_ingresos": float(item["total_ingresos"] or 0),
+            }
+            for item in top_products
+        ],
+
+        "top_sellers": [
+            {
+                "id": item["usuario__id"],
+                "vendedor": item["usuario__username"],
+                "total_sales": float(item["total_sales"] or 0),
+                "total_orders": item["total_orders"],
+            }
+            for item in top_sellers
+        ],
+        
+    })
+
+def generar_chart_data(ventas_qs, view, start, today):
+    from django.db.models.functions import TruncDate, TruncHour, TruncMonth
+
+    if view == "day":
+        hourly = (
+            ventas_qs
+            .annotate(hour=TruncHour("fecha"))
+            .values("hour")
+            .annotate(total_sales=Sum("total"), total_orders=Count("id_venta"))
+        )
+
+        hour_map = {
+            item["hour"].strftime("%H:00"): item
+            for item in hourly
+        }
+
+        return [
+            {
+                "date": f"{h:02d}:00",
+                "total_sales": float(hour_map.get(f"{h:02d}:00", {}).get("total_sales") or 0),
+                "total_orders": hour_map.get(f"{h:02d}:00", {}).get("total_orders") or 0,
+            }
+            for h in range(24)
+        ]
+
+    elif view == "week":
+        daily = (
+            ventas_qs
+            .annotate(day=TruncDate("fecha"))
+            .values("day")
+            .annotate(total_sales=Sum("total"), total_orders=Count("id_venta"))
+        )
+
+        daily_map = {str(d["day"]): d for d in daily}
+
+        return [
+            {
+                "date": (start + timedelta(days=i)).strftime("%Y-%m-%d"),
+                "total_sales": float(daily_map.get(str(start + timedelta(days=i)), {}).get("total_sales") or 0),
+                "total_orders": daily_map.get(str(start + timedelta(days=i)), {}).get("total_orders") or 0,
+            }
+            for i in range(7)
+        ]
+
+    elif view == "month":
+        monthly = (
+            ventas_qs
+            .annotate(month=TruncMonth("fecha"))
+            .values("month")
+            .annotate(
+                total_sales=Sum("total"),
+                total_orders=Count("id_venta")
+            )
+        )
+
+        monthly_map = {
+            item["month"].strftime("%Y-%m"): item
+            for item in monthly
+        }
+
+        return [
+            {
+                "date": f"{start.year}-{i:02d}",
+                "total_sales": float(
+                    monthly_map.get(f"{start.year}-{i:02d}", {}).get("total_sales") or 0
+                ),
+                "total_orders": monthly_map.get(
+                    f"{start.year}-{i:02d}", {}
+                ).get("total_orders") or 0,
+            }
+            for i in range(1, 13)  # 
+        ]

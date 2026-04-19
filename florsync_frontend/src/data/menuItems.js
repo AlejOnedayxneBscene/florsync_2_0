@@ -45,6 +45,8 @@ const menuItems = [
     roles: ["Administrador"], 
     children: [
       { name: "Dashboard", path: "/dashboard" },
+      { name: "Dashboard General", path: "/dashboard/general" },
+
     ],
   },
 ];

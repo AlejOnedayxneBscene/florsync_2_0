@@ -1,12 +1,10 @@
 import React from "react";
-import { Pencil, Trash2 } from "lucide-react";
-
+import { Pencil, Trash2, Plus, Minus, Package } from "lucide-react";
 const capitalize = (text) => {
   if (!text) return "-";
   return text.charAt(0).toUpperCase() + text.slice(1);
 };
 
-// Función para formatear precios en COP
 const formatPrecio = (value) => {
   if (value == null) return "-";
   return new Intl.NumberFormat("es-CO", {
@@ -22,14 +20,16 @@ const DataTable = ({
   data = [],
   onEdit,
   onDelete,
+  onIncrement,
+  onDecrement,
   emptyText = "No hay registros.",
 }) => {
-  // 🔹 Filtrar productos con stock total > 0
-// Si existe stock_total, filtra por > 0, si no, devuelve todos los datos
-const filteredData = data.filter((p) => {
-  if ("stock_total" in p) return Number(p.stock_total) > 0;
-  return true;
-});
+  const filteredData = data.filter((p) => {
+    if ("stock_total" in p) return Number(p.stock_total) > 0;
+    return true;
+  });
+
+  const hasOptions = onEdit || onDelete || onIncrement || onDecrement;
 
   return (
     <div className="w-full bg-white shadow-md rounded-md overflow-hidden">
@@ -55,7 +55,7 @@ const filteredData = data.filter((p) => {
                   {col.label}
                 </th>
               ))}
-              {(onEdit || onDelete) && (
+              {hasOptions && (
                 <th className="p-5 text-center font-semibold text-lg">Opciones</th>
               )}
             </tr>
@@ -65,7 +65,7 @@ const filteredData = data.filter((p) => {
             {filteredData.length === 0 ? (
               <tr>
                 <td
-                  colSpan={columns.length + (onEdit || onDelete ? 1 : 0)}
+                  colSpan={columns.length + (hasOptions ? 1 : 0)}
                   className="p-10 text-center text-gray-500 text-lg"
                 >
                   {emptyText}
@@ -74,7 +74,7 @@ const filteredData = data.filter((p) => {
             ) : (
               filteredData.map((row, index) => (
                 <tr
-                  key={row.id || index}
+                  key={row.id_producto || row.id || index}
                   className={`border-b text-lg ${index % 2 === 0 ? "bg-gray-50" : "bg-white"}`}
                 >
                   {columns.map((col) => (
@@ -98,9 +98,21 @@ const filteredData = data.filter((p) => {
                     </td>
                   ))}
 
-                  {(onEdit || onDelete) && (
+                  {hasOptions && (
                     <td className="p-5">
-                      <div className="flex justify-center gap-4">
+                      <div className="flex justify-center items-center gap-3 flex-wrap">
+
+                        {/* Botones de cantidad */}
+                        {onIncrement && (
+                          <button
+                            onClick={() => onIncrement(row)}
+                            className="w-12 h-12 flex items-center justify-center rounded-full bg-green-600 text-white hover:bg-green-700 transition"
+                            title="Ajustar stock"
+                          >
+                            <Package size={20} />
+                          </button>
+                        )}
+
                         {onEdit && (
                           <button
                             onClick={() => onEdit(row)}

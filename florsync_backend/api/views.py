@@ -37,3 +37,5 @@ class CategoriaViewSet(ModelViewSet):
 
         serializer = self.get_serializer(categoria)
         return Response(serializer.data, status=status.HTTP_201_CREATED if created else status.HTTP_200_OK)
+
+# views.py

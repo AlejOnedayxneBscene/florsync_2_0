@@ -8,8 +8,11 @@ const routeTitles = {
 
   "/categorias": "Categorías",
 
-  "/historial": "Actividad del Sistema", 
+  "/historial": "Actividad del Sistema",
+
   "/dashboard": "Dashboard",
+
+  "/dashboard/general": "Dashboard General",
 };
 
 export default routeTitles;

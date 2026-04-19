@@ -64,10 +64,9 @@ services:
       - ./wal-archive:/wal-archive
     command: >
       sh -c "
-      sleep 3600  &&
       while true; do
         python manage.py upload_wal;
-        sleep 3600 ;
+        sleep 3600;
       done
       "
 

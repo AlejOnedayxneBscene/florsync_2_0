@@ -1,13 +1,16 @@
 from django.contrib import admin
-from django.contrib.auth.admin import UserAdmin
 from django import forms
 from .models import Usuario
+import secrets
+from django.core.mail import send_mail
+from django.conf import settings
+from auditoria.models import AuditLog
 
 
-
+# =========================
+# FORMS
+# =========================
 class CustomUsuarioCreationForm(forms.ModelForm):
-    password = forms.CharField(widget=forms.PasswordInput, required=True)
-
     class Meta:
         model = Usuario
         fields = (
@@ -19,117 +22,104 @@ class CustomUsuarioCreationForm(forms.ModelForm):
             "is_active",
         )
 
-    def clean_groups(self):
-        grupos = self.cleaned_data.get("groups")
-        if not grupos or len(grupos) != 1:
-            raise forms.ValidationError(
-                "Debe seleccionar exactamente un grupo."
-            )
-        return grupos
-
-    def save(self, commit=True):
-        user = super().save(commit=False)
-        user.set_password(self.cleaned_data["password"])
-        
-        # Generar username
-        nombre = (user.first_name or "").lower()
-        cedula = user.cedula[-4:] if user.cedula else ""
-        user.username = f"{nombre}{cedula}"
-
-        if commit:
-            user.save()  # primero guardamos el usuario
-
-           
-            self.save_m2m() 
-
-            grupo = user.groups.first()
-            if grupo and grupo.name == "Administrador":
-                user.is_staff = True
-            else:
-                user.is_staff = False
-                user.is_superuser = False
-            user.save()  # guardamos nuevamente los cambios
-        return user
-
-
 
 class CustomUsuarioChangeForm(forms.ModelForm):
     class Meta:
         model = Usuario
-        fields = "__all__"
+        fields = (
+            "first_name",
+            "last_name",
+            "cedula",
+            "email",
+            "groups",
+            "is_active",
+        )
 
 
-
+# =========================
+# ADMIN
+# =========================
 @admin.register(Usuario)
-class CustomUsuarioAdmin(UserAdmin):
-    add_form = CustomUsuarioCreationForm
+class CustomUsuarioAdmin(admin.ModelAdmin):
+
     form = CustomUsuarioChangeForm
-    model = Usuario
+    add_form = CustomUsuarioCreationForm
 
     list_display = ("username", "email", "get_grupo", "is_active")
     filter_horizontal = ("groups",)
 
-    add_fieldsets = (
-        (None, {
-            "classes": ("wide",),
-            "fields": (
-                "first_name",
-                "last_name",
-                "cedula",
-                "email",
-                "password",
-                "groups",
-                "is_active",
-            ),
-        }),
-    )
+    # 🔥 FIX: evita password fields del UserAdmin
+    exclude = ("password",)
 
-    fieldsets = (
-        (None, {
-            "fields": (
-                "first_name",
-                "last_name",
-                "cedula",
-                "email",
-                "password",
-                "groups",
-                "is_active",
-            ),
-        }),
-    )
+    def get_queryset(self, request):
+        return Usuario.objects.all()
+
+    # =========================
+    # AUDITORIA
+    # =========================
+    def log(self, request, accion, instance, cambios=None):
+        AuditLog.objects.create(
+            usuario=request.user,
+            accion=accion,
+            modelo="Usuario",
+            objeto_id=str(instance.id),
+            objeto_nombre=str(instance),
+            cambios=cambios or {}
+        )
+
+    # =========================
+    # CREATE / UPDATE
+    # =========================
+    def save_model(self, request, obj, form, change):
+        is_new = not change
+
+        if is_new:
+            password = secrets.token_urlsafe(8)
+            obj.set_password(password)
+            obj.debe_cambiar_password = True
+
+            nombre = (obj.first_name or "").lower()
+            cedula = obj.cedula[-4:] if obj.cedula else ""
+            obj.username = f"{nombre}{cedula}"
+
+        obj.save()
+        form.save_m2m()
+
+        grupo = obj.groups.first()
+        obj.is_staff = grupo and grupo.name == "Administrador"
+        obj.is_superuser = False
+        obj.save()
+
+        if is_new:
+            self.log(request, "CREATE", obj, {
+                "username": obj.username,
+                "email": obj.email
+            })
+
+            send_mail(
+                subject="Bienvenido",
+                message=f"Usuario: {obj.username}\nPassword: {password}",
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[obj.email],
+            )
+        else:
+            self.log(request, "UPDATE", obj, {
+                "username": obj.username,
+                "email": obj.email
+            })
+
+    # =========================
+    # DELETE = SOLO DESACTIVAR
+    # =========================
+    def delete_model(self, request, obj):
+        self.log(request, "DELETE", obj, {
+            "username": obj.username,
+            "email": obj.email
+        })
+
+        obj.is_active = False
+        obj.save()
 
     def get_grupo(self, obj):
         grupo = obj.groups.first()
         return grupo.name if grupo else "-"
-    get_grupo.short_description = "Grupo"
-
-    def save_model(self, request, obj, form, change):
-    # Primero guardar el usuario
-        obj.save()
-
-        # Guardar los ManyToMany del form
-        form.save_m2m()  # ahora M2M existe
-
-        # Revisar el grupo y asignar permisos
-        grupo = obj.groups.first()
-        if grupo and grupo.name == "Administrador":
-            obj.is_staff = True
-        else:
-            obj.is_staff = False
-            obj.is_superuser = False
-
-        # Guardamos los cambios finales
-        obj.save()
-
-    def get_form(self, request, obj=None, **kwargs):
-        form = super().get_form(request, obj, **kwargs)
-        groups_field = getattr(form.base_fields, "groups", None)
-
-        if groups_field:
-            form.base_fields["groups"].queryset = (
-                form.base_fields["groups"]
-                .queryset.filter(
-                    name__in=["Administrador", "Vendedor"]
-                )
-            )
-        return form

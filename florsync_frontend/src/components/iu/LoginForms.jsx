@@ -47,6 +47,8 @@ setFormData({
   placeholder="Digite su usuario"
   value={formData.id_usuario}
   onChange={handleChange}
+  data-lpignore="true"        // Ignora LastPass
+  data-form-type="other"
   autoComplete="off"
 />
     <Input
@@ -58,9 +60,17 @@ setFormData({
   autoComplete="new-password"
 />
 
-    <Button type="submit" loading={loading}>
+   <Button type="submit" loading={loading}>
       Iniciar sesión
     </Button>
+
+    
+      <a
+  href="/forgot-password"
+  className="text-sm text-white/50 hover:text-white transition-colors"
+>
+  ¿Olvidaste tu contraseña?
+</a>
   </form>
 </div>
 

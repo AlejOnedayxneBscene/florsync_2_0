@@ -3,7 +3,7 @@ import api from "../api/axios"; // tu instancia Axios con interceptores
 
 const AuthContext = createContext();
 const INACTIVITY_LIMIT = 30 * 60 * 1000; // 30 min
-
+const token = localStorage.getItem("access"); // ⬅ era "token", debe ser "access"
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isAuthLoaded, setIsAuthLoaded] = useState(false);
@@ -31,30 +31,35 @@ export const AuthProvider = ({ children }) => {
     clearTimeout(inactivityTimer.current);
   };
 
-  // 🔐 Verificar sesión al cargar la app
+  //  Verificar sesión al cargar la app
  useEffect(() => {
   const checkAuth = async () => {
-    const access = localStorage.getItem("access");
-    const refresh = localStorage.getItem("refresh");
+  const access = localStorage.getItem("access");
+  const refresh = localStorage.getItem("refresh");
 
-    if (!access || !refresh) {
-      setIsAuthenticated(false);
-      setIsAuthLoaded(true);
-      return;
-    }
+  if (!access || !refresh) {
+    setIsAuthenticated(false);
+    setIsAuthLoaded(true);
+    return;
+  }
 
-    try {
-      // si access expiró, interceptor lo refresca solo
-      await api.get("/usuarios/me/");
-      setIsAuthenticated(true);
-    } catch (err) {
-      setIsAuthenticated(false);
-      localStorage.removeItem("access");
-      localStorage.removeItem("refresh");
-    } finally {
-      setIsAuthLoaded(true);
-    }
-  };
+  try {
+    await api.get("/usuarios/me/");
+    setIsAuthenticated(true);
+
+    // ✅ restaurar usuario al recargar
+    const stored = localStorage.getItem("user");
+    if (stored) setUser(JSON.parse(stored));
+
+  } catch (err) {
+    setIsAuthenticated(false);
+    localStorage.removeItem("access");
+    localStorage.removeItem("refresh");
+    localStorage.removeItem("user"); // ✅ limpiar user también
+  } finally {
+    setIsAuthLoaded(true);
+  }
+};
 
   checkAuth();
 }, []);
@@ -76,7 +81,10 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [isAuthenticated]);
 
-const [user, setUser] = useState(null);
+const [user, setUser] = useState(() => {
+  const stored = localStorage.getItem("user");
+  return stored ? JSON.parse(stored) : null;
+});
 
 const login = (access, refresh, usuario) => {
   localStorage.setItem("access", access);
