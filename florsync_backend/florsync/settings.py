@@ -43,15 +43,12 @@ INSTALLED_APPS = [
     'api',
     'rest_framework',
     'corsheaders',
-    'usuarios',  # tu app de usuarios
+    'usuarios.apps.UsuariosConfig',
     'productos',
     'clientes',
     'ventas',
     'auditoria',
     'django_crontab',
-
-
-    # Otras apps personalizadas...
 ]
 
 AUTH_USER_MODEL = 'usuarios.Usuario'
