@@ -80,7 +80,17 @@ services:
     volumes:
       - ./base-backup:/basebackup
       - ./wal-archive:/wal-archive
-    command: sh /app/scripts/backup_scheduler.sh
+    command: >
+      sh -c "
+      if [ ! -f /basebackup/.backup_done ]; then
+        echo '[BACKUP] Ejecutando backup inicial...' &&
+        python manage.py basebackup &&
+        touch /basebackup/.backup_done
+      else
+        echo '[BACKUP] Backup inicial ya existe, omitiendo.'
+      fi &&
+      sh /app/scripts/backup_scheduler.sh
+      "
 
   frontend:
     build: ./florsync_frontend
