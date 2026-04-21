@@ -19,7 +19,7 @@ class Producto(models.Model):
 
     activo = models.BooleanField(default=True)
 
-    # 🔥 AUDITORÍA
+    #  AUDITORÍA
     creado_por = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         null=True,

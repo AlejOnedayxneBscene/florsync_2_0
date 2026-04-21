@@ -39,16 +39,18 @@ const menuItems = [
       { name: "Actividad de cambios", path: "/historial" },
     ],
   },
-  {
-    name: "Dashboard",
-    path: "/dashboard",
-    roles: ["Administrador"], 
-    children: [
-      { name: "Dashboard", path: "/dashboard" },
-      { name: "Dashboard General", path: "/dashboard/general" },
-
-    ],
-  },
+ {
+  name: "Dashboard",
+  path: "/dashboard",
+  children: [
+    { name: "Dashboard", path: "/dashboard" }, 
+    { 
+      name: "Dashboard General", 
+      path: "/dashboard/general",
+      roles: ["Administrador"] // 
+    },
+  ],
+}
 ];
 
 export default menuItems;

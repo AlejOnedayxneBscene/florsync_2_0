@@ -14,7 +14,6 @@ export const obtenerUsuarios = async () => {
 export const validarUsuario = async (username, password) => {
   try {
     const response = await api.post("/usuarios/login/", { username, password });
-    console.log("Inicio de sesión exitoso:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error en el inicio de sesión:", error);
@@ -32,7 +31,7 @@ export const solicitarResetPassword = async (email) => {
   }
 };
 
-// 🔑 Confirmar reset
+// 
 export const confirmarResetPassword = async (email, codigo, password) => {
   try {
     const response = await api.post("/usuarios/password-reset/change/", {
@@ -47,10 +46,9 @@ export const confirmarResetPassword = async (email, codigo, password) => {
   }
 };
 
-// Reemplaza toda la función cambiarPasswordProvisional
 export const cambiarPasswordProvisional = async (passwordActual, passwordNuevo) => {
   try {
-    const response = await api.post("/usuarios/usuarios/cambiar-password/", {
+    const response = await api.post("/usuarios/usuarios/cambiar_password/", {
       password_actual: passwordActual,
       password_nuevo: passwordNuevo,
     });

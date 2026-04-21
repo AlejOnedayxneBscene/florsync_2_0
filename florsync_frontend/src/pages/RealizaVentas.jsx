@@ -166,19 +166,15 @@ const Ventas = () => {
 
   const handleConfirmVenta = (cliente) => {
     if (carrito.length === 0) return;
-    console.log("🚀 Abrir modal de confirmación con cliente:", cliente);
     setClienteParaVenta(cliente);
     setConfirmOpen(true);
   };
 
   const handleVentaReal = async () => {
-    console.log("🚀 handleVentaReal ejecutándose...");
     try {
       await handleVenta({ cliente: clienteParaVenta });
-      console.log("✅ Venta enviada al backend correctamente");
       setVentaSuccess(true);
     } catch (error) {
-      console.error("🔥 Error al realizar la venta:", error);
       setVentaSuccess(false);
     } finally {
       setTimeout(() => {

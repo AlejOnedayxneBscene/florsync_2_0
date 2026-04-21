@@ -26,12 +26,30 @@ export default function SideBar({ open, setOpen }) {
 
 const userGrupo = user?.grupo || "";
 
-const filteredItems = menuItems.filter((item) => {
-  if (item.name === "Historial") {
-    return userGrupo === "Administrador";
-  }
-  return true;
-});
+const filteredItems = menuItems
+  .filter((item) => {
+    // ❌ Ocultar Historial completo
+    if (item.name === "Historial") {
+      return userGrupo === "Administrador";
+    }
+    return true;
+  })
+  .map((item) => {
+    const filteredChildren = item.children
+      ? item.children.filter((child) => {
+          // ❌ Ocultar Dashboard General
+          if (child.name === "Dashboard General") {
+            return userGrupo === "Administrador";
+          }
+          return true;
+        })
+      : [];
+
+    return {
+      ...item,
+      children: filteredChildren,
+    };
+  });
 
   return (
     <>
@@ -55,10 +73,11 @@ const filteredItems = menuItems.filter((item) => {
         <nav className="flex flex-col gap-2">
           {filteredItems.map((item) => (
             <SidebarItem
-              key={item.name}
-              item={item}
-              closeSidebar={() => setOpen(false)}
-            />
+            key={item.name}
+            item={item}
+            isSidebarOpen={open}   // 👈 NUEVO
+            closeSidebar={() => setOpen(false)}
+          />
           ))}
         </nav>
 

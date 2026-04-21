@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { validarUsuario } from "../api/apiUsuarios";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../components/AuthContext";
-import "../css/styles.css";
 import LoginContainer from "../components/iu/LoginContainer";
 import LoginForms from "../components/iu/LoginForms";
 import Carousel from "../components/iu/Caurousel";
@@ -23,51 +22,49 @@ const Login = () => {
     });
   };
 
-  const handleSubmit = async (event, setError, setFieldError) => {
-    event.preventDefault();
-    setLoading(true);
+const handleSubmit = async (e, setError, setFieldError) => {
+  e.preventDefault(); 
 
-    const { id_usuario, password } = formData;
+  setLoading(true);
 
-    // Validate empty fields
-    if (!id_usuario || !password) {
-      setError("Por favor digite todos los campos");
-      setFieldError((prev) => ({
-        ...prev,
-        ...(!id_usuario && { id_usuario: true }),
-        ...(!password && { password: true }),
-      }));
-      setLoading(false);
-      return;
-    }
+  const { id_usuario, password } = formData;
 
-    try {
-      const data = await validarUsuario(id_usuario, password);
+  if (!id_usuario || !password) {
+    setError("Por favor digite todos los campos");
+    setFieldError((prev) => ({
+      ...prev,
+      ...(!id_usuario && { id_usuario: true }),
+      ...(!password && { password: true }),
+    }));
+    setLoading(false);
+    return;
+  }
 
-      if (data?.access) {
-        login(data.access, data.refresh, {
+  try {
+    const data = await validarUsuario(id_usuario, password);
+
+    if (data?.access) {
+      login(data.access, data.refresh, {
         id: data.id,
         username: data.username,
         grupo: data.grupo,
-        debe_cambiar_password: data.debe_cambiar_password, // 👈 FALTA ESTO
+        debe_cambiar_password: data.debe_cambiar_password,
       });
 
-        // Redirect based on whether password change is required
-        if (data.debe_cambiar_password) {
-          navigate("/cambiar-password");
-        } else {
-          navigate("/dashboard");
-        }
+      if (data.debe_cambiar_password) {
+        navigate("/cambiar-password");
       } else {
-        setError("Usuario o contraseña incorrectos");
+        navigate("/dashboard");
       }
-    } catch (error) {
-      console.error("Error en el inicio de sesión:", error);
+    } else {
       setError("Usuario o contraseña incorrectos");
-    } finally {
-      setLoading(false);
     }
-  };
+  } catch (error) {
+    setError("Usuario o contraseña incorrectos");
+  } finally {
+    setLoading(false);
+  }
+};
 
   return (
     <LoginContainer>

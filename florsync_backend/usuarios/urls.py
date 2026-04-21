@@ -10,10 +10,10 @@ from .views import (
 )
 
 router = DefaultRouter()
-router.register(r'usuarios', UsuarioViewSet)  # 👈 aquí registras el ViewSet
+router.register(r'usuarios', UsuarioViewSet)  # 
 
 urlpatterns = [
-    path('', include(router.urls)),  # 👈 ESTO ES LO QUE TE FALTABA
+    path('', include(router.urls)),  # 
 
     path('login/', login_usuario, name='login_usuario'),
     path("me/", me),

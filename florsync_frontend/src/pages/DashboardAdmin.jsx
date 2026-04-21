@@ -6,7 +6,7 @@ import TopProductsChart from "../components/iu/TopProductsChart";
 import SellerChart from "../components/iu/SellerChart";
 import SalesChart from "../components/iu/SalesChart";
 import Filters from "../components/iu/Filters";
-
+import LowStockAlert from "../components/iu/LowStockAlert";
 import { obtenerDashboardAdmin } from "../api/apiVentas";
 
 export default function DashboardAdmin() {
@@ -88,28 +88,7 @@ export default function DashboardAdmin() {
         <h2 className="font-bold mb-4">Ventas por vendedor</h2>
         <SellerChart data={data.top_sellers} />
       </div>
-
-      <div className="bg-white p-4 rounded-xl shadow">
-        <h2 className="font-bold mb-4 text-red-600">
-          ⚠️ Stock bajo
-        </h2>
-
-        {data.low_stock?.length > 0 ? (
-          <div className="space-y-2">
-            {data.low_stock.map((p) => (
-              <div key={p.id} className="flex justify-between border-b py-1">
-                <span>{p.nombre}</span>
-                <span className="font-bold text-red-500">
-                  {p.stock} unidades
-                </span>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <p>No hay productos con stock bajo</p>
-        )}
-      </div>
-
+        <LowStockAlert productos={data.low_stock} />
     </div>
   );
 }

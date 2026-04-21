@@ -10,28 +10,29 @@ export default function LoginForms({ formData, handleChange, setFormData, handle
   const [fieldError, setFieldError] = useState({}); // Campos vacíos
   const [error, setError] = useState(""); // Mensaje general
 
-  const onSubmit = (e) => {
-    e.preventDefault();
+const onSubmit = async (e) => {
+  e.preventDefault();
 
-    let newFieldError = {};
-    if (!formData.id_usuario) newFieldError.id_usuario = true;
-    if (!formData.password) newFieldError.password = true;
+  let newFieldError = {};
+  if (!formData.id_usuario) newFieldError.id_usuario = true;
+  if (!formData.password) newFieldError.password = true;
 
-    if (Object.keys(newFieldError).length > 0) {
-      setFieldError(newFieldError);
-      setError("Por favor digite todos los campos");
-      return;
-    }
+  if (Object.keys(newFieldError).length > 0) {
+    setFieldError(newFieldError);
+    setError("Por favor digite todos los campos");
+    return;
+  }
 
-    setFieldError({});
-    setError("");
+  setFieldError({});
+  setError("");
 
-    handleSubmit(e, setError, setFieldError); // Pasamos las funciones de error al componente padre
-setFormData({
-  ...formData,
-  password: ""
-});  };
-  
+  await handleSubmit(e, setError, setFieldError); 
+
+  setFormData({
+    ...formData,
+    password: ""
+  });
+};
   return (
    <div className="w-full md:w-1/2 flex flex-col justify-center items-center gap-8 text-white h-full">
   <Title text="Inicio de sesión" />
@@ -47,7 +48,7 @@ setFormData({
   placeholder="Digite su usuario"
   value={formData.id_usuario}
   onChange={handleChange}
-  data-lpignore="true"        // Ignora LastPass
+  data-lpignore="true"        
   data-form-type="other"
   autoComplete="off"
 />

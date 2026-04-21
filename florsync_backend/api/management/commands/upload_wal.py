@@ -1,6 +1,7 @@
 import time
 import signal
 import sys
+import threading
 from pathlib import Path
 from datetime import datetime, timezone
 
@@ -10,132 +11,213 @@ from django.db import connection
 from supabase import create_client
 
 
-WAL_DIR    = Path('/wal-archive')
-STATE_FILE = Path('/wal-archive/last_wal_upload.txt')
+WAL_DIR       = Path('/wal-archive')
+STATE_FILE    = Path('/wal-archive/last_wal_upload.txt')
+POLL_INTERVAL = 30    # revisar cada 30s si hay WAL nuevos para subir
 
 
 def force_wal_switch():
+    """
+    Rota el WAL activo. No hacemos escrituras dummy — si el WAL está
+    vacío pg_switch_wal() igual lo archiva (genera un segmento parcial).
+    """
     with connection.cursor() as cursor:
         cursor.execute("SELECT pg_switch_wal();")
 
 
-def wait_for_new_wal(previous_last, timeout=60):
+def get_wal_names() -> list[str]:
+    return sorted([
+        f.name for f in WAL_DIR.iterdir()
+        if f.is_file() and len(f.name) == 24
+    ])
+
+
+def get_current_timeline() -> str:
+    """
+    Obtiene el timeline actual directamente de PostgreSQL.
+    Retorna string de 8 chars hex, ej: '00000003'
+    """
+    try:
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT timeline_id FROM pg_control_checkpoint();")
+            row = cursor.fetchone()
+            if row:
+                tl_int = int(row[0])
+                return f"{tl_int:08X}"
+    except Exception as e:
+        print(f"[WAL] No se pudo obtener timeline de PG: {e}")
+
+    # Fallback: usar el WAL más reciente del directorio
+    wals = get_wal_names()
+    if not wals:
+        return "00000001"
+    return wals[-1][:8]
+
+
+def get_last_uploaded() -> str:
+    """
+    Retorna el último WAL subido, reseteando si el timeline cambió.
+    """
+    current_tl = get_current_timeline()
+
+    if not STATE_FILE.exists():
+        STATE_FILE.write_text("")
+        return ""
+
+    last = STATE_FILE.read_text().strip()
+
+    if not last:
+        return ""
+
+    # Si el último WAL subido es de un timeline diferente al actual → resetear
+    last_tl = last[:8] if len(last) >= 8 else ""
+    if last_tl and current_tl and last_tl != current_tl:
+        print(f"[WAL] ⚠ Timeline cambió: STATE_FILE={last_tl}, PG actual={current_tl}")
+        print(f"[WAL] Reseteando STATE_FILE para subir WAL del timeline actual")
+        STATE_FILE.write_text("")
+        return ""
+
+    return last
+
+def wait_for_new_wal(previous_last: str, stop_event: threading.Event, timeout: int = 60) -> str | None:
     start = time.time()
-
     while time.time() - start < timeout:
-        wals = sorted([
-            f.name for f in WAL_DIR.iterdir()
-            if f.is_file() and len(f.name) == 24
-        ])
-
+        wals = get_wal_names()
         if wals and wals[-1] != previous_last:
-            return True
-
-        time.sleep(2)
-
-    return False
+            return wals[-1]
+        stop_event.wait(timeout=2)
+    return None
 
 
 class Command(BaseCommand):
-    help = 'Sube archivos WAL nuevos a Supabase Storage'
+    help = 'Sube WAL cada hora y al cerrar la aplicación'
 
-    def upload_pending_wals(self, client, bucket):
-        """Sube todos los WAL pendientes. Retorna cantidad subida."""
+    def rotate_and_upload(self, client, bucket, stop_event: threading.Event, context: str = ""):
+        """Rota el WAL activo, espera que se archive, y sube todo lo pendiente."""
+        prefix = f"[WAL{' ' + context if context else ''}]"
 
-        # Leer estado
-        last_wal = ""
-        if STATE_FILE.exists():
-            last_wal = STATE_FILE.read_text().strip()
+        before_last = get_wal_names()
+        before_last = before_last[-1] if before_last else ""
+
+        self.stdout.write(f"{prefix} Rotando WAL activo...")
+        force_wal_switch()
+
+        self.stdout.write(f"{prefix} Esperando que PostgreSQL archive el nuevo WAL (max 60s)...")
+        nuevo = wait_for_new_wal(before_last, stop_event, timeout=60)
+
+        if nuevo:
+            self.stdout.write(f"{prefix} WAL archivado: {nuevo}")
         else:
-            self.stdout.write("Inicializando STATE_FILE...")
-            STATE_FILE.write_text("")
+            self.stdout.write(self.style.WARNING(f"{prefix} Timeout — subiendo lo disponible igualmente"))
 
-        self.stdout.write(f'Último WAL guardado: {last_wal}')
+        return self.upload_pending(client, bucket, prefix)
 
-        # Buscar nuevos WAL
-        wal_files = sorted([
+    def upload_pending(self, client, bucket, prefix: str = "[WAL]") -> int:
+        """Sube solo WAL pendientes del timeline actual."""
+        last_wal   = get_last_uploaded()
+        current_tl = get_current_timeline()
+        wal_files  = sorted([
             f for f in WAL_DIR.iterdir()
             if f.is_file()
             and len(f.name) == 24
+            and f.name.startswith(current_tl)   # solo timeline actual
             and f.name > last_wal
         ])
 
-        self.stdout.write(f'WAL encontrados: {[f.name for f in wal_files]}')
-
         if not wal_files:
-            self.stdout.write('No hay WAL nuevos para subir.')
+            self.stdout.write(f"{prefix} Sin WAL pendientes.")
             return 0
 
-        self.stdout.write(f'Subiendo {len(wal_files)} archivos WAL...')
+        self.stdout.write(f"{prefix} Subiendo {len(wal_files)} WAL...")
 
         now    = datetime.now(timezone.utc)
-        folder = now.strftime('%Y/%m/wal')
+        # Incluir timeline en la ruta para no mezclar WAL de distintas historias
+        # El timeline son los primeros 8 chars del nombre del WAL
+        timeline = wal_files[0].name[:8] if wal_files else "00000001"
+        folder = now.strftime(f'%Y/%m/wal/{timeline}')
         subidos = 0
 
         for wal in wal_files:
             try:
-                remote_path = f"{folder}/{wal.name}"
-
                 with open(wal, 'rb') as f:
                     client.storage.from_(bucket).upload(
-                        path=remote_path,
+                        path=f"{folder}/{wal.name}",
                         file=f,
                         file_options={
                             'content-type': 'application/octet-stream',
                             'x-upsert': 'true',
                         },
                     )
-
-                self.stdout.write(f'✓ {wal.name}')
+                self.stdout.write(f"  ✓ {wal.name}")
                 STATE_FILE.write_text(wal.name)
                 subidos += 1
-
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f'Error subiendo {wal.name}: {e}'))
+                self.stdout.write(self.style.ERROR(f"  ✗ Error subiendo {wal.name}: {e}"))
                 break
 
         return subidos
 
     def handle(self, *args, **options):
-        client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
-        bucket = settings.SUPABASE_BACKUP_BUCKET
+        client     = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_KEY)
+        bucket     = settings.SUPABASE_BACKUP_BUCKET
+        stop_event = threading.Event()
 
-        # ✅ Shutdown: rotar WAL activo, esperar que se archive y subir
-        def shutdown(signum, frame):
-            self.stdout.write("\n  Señal de cierre recibida, forzando rotación WAL...")
+        # -------------------------------------------------------
+        # SHUTDOWN: rotar WAL, subir, salir limpio
+        # -------------------------------------------------------
+        def do_shutdown():
+            self.stdout.write("\n[WAL SHUTDOWN] Cerrando — rotando y subiendo WAL final...")
             try:
-                force_wal_switch()
-                self.stdout.write("Esperando que el WAL final se archive...")
-                time.sleep(3)  # dar tiempo a archive_command
-
-                subidos = self.upload_pending_wals(client, bucket)
-                self.stdout.write(
-                    self.style.SUCCESS(f"✓ Cierre limpio — {subidos} WAL subidos antes de cerrar")
-                )
+                subidos = self.rotate_and_upload(client, bucket, stop_event, context="SHUTDOWN")
+                self.stdout.write(self.style.SUCCESS(
+                    f"[WAL SHUTDOWN] ✓ Cierre limpio — {subidos} WAL subidos"
+                ))
             except Exception as e:
-                self.stdout.write(self.style.ERROR(f" Error en shutdown: {e}"))
-            sys.exit(0)
+                self.stdout.write(self.style.ERROR(f"[WAL SHUTDOWN] Error: {e}"))
+            finally:
+                sys.exit(0)
 
-        signal.signal(signal.SIGTERM, shutdown)  # docker stop, systemctl stop
-        signal.signal(signal.SIGINT, shutdown)   # Ctrl+C
-
-        # Ver WAL existentes para decidir si rotar
-        last_wal = STATE_FILE.read_text().strip() if STATE_FILE.exists() else ""
-
-        existing_wals = sorted([
-            f for f in WAL_DIR.iterdir()
-            if f.is_file() and len(f.name) == 24
-        ])
-
-        if not existing_wals or existing_wals[-1].name == last_wal:
-            self.stdout.write("Forzando rotación de WAL...")
-            force_wal_switch()
-
-            self.stdout.write("Esperando WAL...")
-            if not wait_for_new_wal(last_wal):
-                self.stdout.write(self.style.ERROR(" WAL no apareció a tiempo"))
+        def shutdown(signum, frame):
+            if stop_event.is_set():
                 return
+            stop_event.set()
+            t = threading.Thread(target=do_shutdown, daemon=True)
+            t.start()
+            t.join()
 
-        # Subir WAL pendientes
-        subidos = self.upload_pending_wals(client, bucket)
-        self.stdout.write(self.style.SUCCESS(f'WAL subidos: {subidos} archivos'))
+        signal.signal(signal.SIGTERM, shutdown)
+        signal.signal(signal.SIGINT, shutdown)
+
+        # -------------------------------------------------------
+        # INICIO: subir WAL que quedaron pendientes antes del cierre
+        # -------------------------------------------------------
+        self.stdout.write("[WAL] Iniciando...")
+        # get_last_uploaded() ya detecta si el timeline cambió y resetea el STATE_FILE
+        self.stdout.write(f"[WAL INICIO] Timeline actual: {get_current_timeline()}")
+        self.stdout.write(f"[WAL INICIO] Último WAL subido: {get_last_uploaded()}")
+        self.stdout.write("[WAL INICIO] Subiendo WAL pendientes del arranque anterior...")
+        subidos = self.upload_pending(client, bucket, prefix="[WAL INICIO]")
+        if subidos:
+            self.stdout.write(self.style.SUCCESS(f"[WAL INICIO] ✓ {subidos} WAL subidos"))
+        else:
+            self.stdout.write("[WAL INICIO] Sin pendientes")
+
+        # -------------------------------------------------------
+        # LOOP: cada hora rotar + subir
+        # -------------------------------------------------------
+        self.stdout.write(f"[WAL] Monitoreando WAL nuevos cada {POLL_INTERVAL}s...")
+
+        while not stop_event.is_set():
+            stop_event.wait(timeout=POLL_INTERVAL)  # espera 1h o hasta SIGTERM
+
+            if stop_event.is_set():
+                break  # el shutdown ya se encarga de rotar y subir
+
+            try:
+                # Solo subir lo que PostgreSQL ya archivó — NO rotar aquí
+                # La rotación la hace PostgreSQL solo con archive_timeout=3600
+                subidos = self.upload_pending(client, bucket, prefix="[WAL]")
+                if subidos:
+                    self.stdout.write(self.style.SUCCESS(f"[WAL] ✓ {subidos} WAL subidos"))
+            except Exception as e:
+                self.stdout.write(self.style.ERROR(f"[WAL] Error en loop: {e}"))

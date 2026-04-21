@@ -23,6 +23,7 @@ services:
       -c wal_level=replica
       -c archive_mode=on
       -c archive_command='cp %p /var/lib/postgresql/wal_archive/%f'
+      -c archive_timeout=3600
       -c max_wal_senders=10
       -c max_replication_slots=10
     healthcheck:
@@ -60,16 +61,14 @@ services:
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://postgres:florsync123@db:5432/FlorsyncBD
+      PYTHONUNBUFFERED: "1"   # ← agregar esto
     volumes:
+      - ./florsync_backend:/app
       - ./wal-archive:/wal-archive
-    command: >
-      sh -c "
-      while true; do
-        python manage.py upload_wal;
-        sleep 3600;
-      done
-      "
-
+    command: ["python", "manage.py", "upload_wal"]
+    stop_grace_period: 90s
   backup:
     build: ./florsync_backend
     restart: always

@@ -21,9 +21,6 @@ const ResumenVenta = ({
 
   const [clienteEncontrado, setClienteEncontrado] = useState(false);
 
-  // ================================
-  // TOTAL REAL DE LA VENTA
-  // ================================
   const total = carrito.reduce(
     (acc, item) => acc + Number(item.precio) * Number(item.cantidad),
     0
@@ -34,7 +31,7 @@ const ResumenVenta = ({
       ? Number(efectivoRecibido || 0) - total
       : 0;
 
-  // 🔥 Validaciones del botón
+  //  Validaciones del botón
   const efectivoInsuficiente =
     metodoPago === "efectivo" &&
     Number(efectivoRecibido || 0) < total;
@@ -248,7 +245,7 @@ const ResumenVenta = ({
       <Button
         onClick={() => onRealizarVenta(cliente)}
         disabled={ventaDeshabilitada}
-        className={`px-4 py-2 rounded mt-4 text-white ${
+        className={`w-full px-4 py-2 rounded mt-4 text-white ${
           ventaDeshabilitada
             ? "bg-gray-400 cursor-not-allowed"
             : "bg-blue-600 hover:bg-blue-700"

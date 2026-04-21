@@ -1,10 +1,13 @@
-import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-export default function SidebarItem({ item, closeSidebar }) {
+import { useState, useEffect } from "react";
+export default function SidebarItem({ item, closeSidebar, isSidebarOpen }){
   const [open, setOpen] = useState(false);
   const navigate = useNavigate();
-
+useEffect(() => {
+  if (!isSidebarOpen) {
+    setOpen(false); 
+  }
+}, [isSidebarOpen]);
   return (
     <div>
       <button

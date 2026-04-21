@@ -287,7 +287,6 @@ def dashboard_admin(request):
     )
     .order_by("-total_sales")[:5]
 )
-    print("TOP SELLERS:", top_sellers)
     top_products = list(
         DetalleVenta.objects
         .filter(venta__in=ventas_qs)
@@ -299,6 +298,11 @@ def dashboard_admin(request):
             )
         )
         .order_by('-total_vendido')[:5]
+    )
+    productos_bajo_stock = list(
+        Producto.objects
+        .filter(stock_total__lte=F('stock_minimo'))
+        .values("id_producto", "nombre", "stock_total", "stock_minimo")
     )
 
     return Response({
@@ -327,7 +331,15 @@ def dashboard_admin(request):
             }
             for item in top_sellers
         ],
-        
+        "low_stock": [
+    {
+        "id": p["id_producto"],
+        "nombre": p["nombre"],
+        "stock": p["stock_total"],
+        "stock_minimo": p["stock_minimo"],
+    }
+    for p in productos_bajo_stock
+],
     })
 
 def generar_chart_data(ventas_qs, view, start, today):

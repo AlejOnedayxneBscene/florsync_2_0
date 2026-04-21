@@ -30,7 +30,11 @@ from api.models import Categoria
 from api.serializers import CategoriaSerializer
 from ventas.models import Venta
 from ventas.serializers import VentaSerializer
+from rest_framework.decorators import action
+from .serializers import UsuarioSerializer
 
+
+from rest_framework.decorators import action
 @api_view(["POST"])
 @permission_classes([AllowAny])
 def login_usuario(request):
@@ -59,7 +63,7 @@ def login_usuario(request):
     "id": user.id,
     "username": user.username,
     "grupo": nombre_grupo,
-    "debe_cambiar_password": user.debe_cambiar_password  # 👈 CLAVE
+    "debe_cambiar_password": user.debe_cambiar_password  
 })
 
 
@@ -128,8 +132,6 @@ class VentaViewSet(ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(usuario=self.request.user)
 
-from rest_framework.decorators import action
-from .serializers import UsuarioSerializer
 
 class UsuarioViewSet(AuditMixin, ModelViewSet):
     serializer_class = UsuarioSerializer
@@ -143,6 +145,24 @@ class UsuarioViewSet(AuditMixin, ModelViewSet):
             return [EsAdmin()]
 
         return [IsAuthenticated()]
+
+    @action(detail=False, methods=['post'])
+    def cambiar_password(self, request):
+        user = request.user
+        password_actual = request.data.get("password_actual")
+        password_nuevo = request.data.get("password_nuevo")
+
+        if not password_actual or not password_nuevo:
+            return Response({"error": "Datos incompletos"}, status=400)
+
+        if not user.check_password(password_actual):
+            return Response({"error": "Contraseña actual incorrecta"}, status=400)
+
+        user.set_password(password_nuevo)
+        user.debe_cambiar_password = False
+        user.save()
+
+        return Response({"message": "Contraseña actualizada"})
 
 class UsuarioMeView(APIView):
     permission_classes = [IsAuthenticated]

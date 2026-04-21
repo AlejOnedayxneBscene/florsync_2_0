@@ -6,7 +6,7 @@ const api = axios.create({
   timeout: 5000, // opcional recomendado
 });
 
-// ✅ Enviar token en cada request
+//  Enviar token en cada request
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("access");
   if (token) {
@@ -15,13 +15,19 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// ✅ Manejo de errores + refresh + servidor apagado
+//  Manejo de errores + refresh + servidor apagado
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
+    const isLoginRequest = originalRequest.url.includes("/usuarios/login/");
 
-    // 🔥 servidor apagado / sin respuesta
+    //  NO tocar errores del login
+    if (isLoginRequest) {
+      return Promise.reject(error);
+    }
+
+    // servidor apagado
     if (!error.response) {
       localStorage.removeItem("access");
       localStorage.removeItem("refresh");
@@ -29,8 +35,8 @@ api.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // 🔁 access expirado
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // access expirado
+    if (error.response.status === 401 && !originalRequest._retry) {
       originalRequest._retry = true;
 
       try {
@@ -43,6 +49,7 @@ api.interceptors.response.use(
 
         localStorage.setItem("access", res.data.access);
         originalRequest.headers.Authorization = `Bearer ${res.data.access}`;
+
         return api(originalRequest);
       } catch (err) {
         localStorage.removeItem("access");
