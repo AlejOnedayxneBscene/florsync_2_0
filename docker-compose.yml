@@ -32,6 +32,22 @@ services:
       timeout: 5s
       retries: 5
 
+  
+  restore:
+    build: ./florsync_backend
+    restart: "no"                        # nunca reiniciar automáticamente
+    profiles:
+      - restore                          # no arranca con `docker compose up`
+    env_file:
+      - .env
+    environment:
+      PGDATA: /var/lib/postgresql/data
+    volumes:
+      - ./florsync_backend:/app          # restore.py vive aquí
+      - postgres_data:/var/lib/postgresql/data   # acceso directo al volumen de pg
+      - ./wal-archive:/wal-archive       # WALs compartidos con db
+    # No hay command: se invoca manualmente con `docker compose run`
+
   backend:
     build: ./florsync_backend
     restart: always
@@ -63,12 +79,13 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgres://postgres:florsync123@db:5432/FlorsyncBD
-      PYTHONUNBUFFERED: "1"   # ← agregar esto
+      PYTHONUNBUFFERED: "1"
     volumes:
       - ./florsync_backend:/app
       - ./wal-archive:/wal-archive
     command: ["python", "manage.py", "upload_wal"]
     stop_grace_period: 90s
+
   backup:
     build: ./florsync_backend
     restart: always
