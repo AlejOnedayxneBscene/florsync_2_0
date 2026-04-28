@@ -1,207 +1,166 @@
 #!/usr/bin/env python3
 """
-restore.py - Restaura un base backup desde Supabase Storage y aplica WALs (PITR).
+restore.py - Restaura base backup + WALs desde Supabase Storage (PITR).
 
 Uso:
-    docker compose run --rm restore python restore.py base_20260428_013453
-
-Variables de entorno requeridas (via .env):
-    SUPABASE_URL
-    SUPABASE_SERVICE_ROLE_KEY
-    SUPABASE_BUCKET   (default: "backups")
+    docker compose --profile restore run --rm restore python restore.py base_20260428_013453
 """
 
 import sys
 import os
+import re
 import tarfile
 import shutil
 import tempfile
 from pathlib import Path
 
-# ---------------------------------------------------------------------------
-# Dependencias: solo supabase (ya instalada en la imagen del backend)
-# ---------------------------------------------------------------------------
-try:
-    from supabase import create_client
-except ImportError:
-    print("❌ Falta instalar: pip install supabase")
-    sys.exit(1)
-
+from supabase import create_client
 
 # ---------------------------------------------------------------------------
-# Configuración
+# Config
 # ---------------------------------------------------------------------------
 PGDATA      = Path(os.environ.get("PGDATA", "/var/lib/postgresql/data"))
 WAL_ARCHIVE = Path("/wal-archive")
 
-SUPABASE_URL    = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY    = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "")
-SUPABASE_BUCKET = os.environ.get("SUPABASE_BUCKET", "backups")
+SUPABASE_URL = os.environ.get("SUPABASE_URL")
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+BUCKET       = os.environ.get("SUPABASE_BUCKET", "backups")
 
+WAL_IGNORE   = {"last_wal_upload.txt"}
+WAL_SEGMENT  = re.compile(r'^[0-9A-F]{24}$')          # segmento WAL puro
+WAL_BACKUP   = re.compile(r'^[0-9A-F]{24}\.[0-9A-F]+\.backup$')  # .backup file
+WAL_HISTORY  = re.compile(r'^\d+\.history$')           # timeline history
 
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-def abort(msg: str):
+def abort(msg):
     print(f"\n❌ {msg}")
     sys.exit(1)
 
-
 def check_env():
-    missing = [v for v in ("SUPABASE_URL", "SUPABASE_SERVICE_ROLE_KEY") if not os.environ.get(v)]
-    if missing:
-        abort(f"Variables de entorno faltantes: {', '.join(missing)}")
+    if not SUPABASE_URL or not SUPABASE_KEY:
+        abort("Faltan variables SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY")
 
+def clear_dir(path):
+    if path.exists():
+        for f in path.iterdir():
+            shutil.rmtree(f) if f.is_dir() else f.unlink()
 
-def build_remote_path(backup_name: str) -> str:
-    """
-    Construye la ruta remota en Supabase Storage.
-    Espera nombres como: base_YYYYMMDD_HHMMSS
-    Ruta resultante:     base/YYYY/MM/base_YYYYMMDD_HHMMSS.tar.gz
-    """
-    try:
-        date_part = backup_name.replace("base_", "")[:8]  # YYYYMMDD
-        year  = date_part[:4]
-        month = date_part[4:6]
-    except Exception:
-        abort(f"Nombre de backup inválido: '{backup_name}'. Formato esperado: base_YYYYMMDD_HHMMSS")
-
-    return f"base/{year}/{month}/{backup_name}.tar.gz"
-
-
-def download_backup(client, remote_path: str, dest: Path) -> Path:
-    print(f"   Ruta remota : {remote_path}")
-    print(f"   Destino     : {dest}")
-
-    try:
-        data = client.storage.from_(SUPABASE_BUCKET).download(remote_path)
-    except Exception as e:
-        abort(f"No se pudo descargar el backup: {e}")
-
-    tar_path = dest / Path(remote_path).name
-    tar_path.write_bytes(data)
-    size_mb = tar_path.stat().st_size / 1_048_576
-    print(f"   Tamaño      : {size_mb:.1f} MB")
-    return tar_path
-
-
-def clear_pgdata():
-    """Limpia PGDATA preservando el directorio raíz."""
-    if not PGDATA.exists():
-        abort(f"PGDATA no encontrado: {PGDATA}  — ¿está montado el volumen?")
-
-    print(f"   Limpiando {PGDATA} ...")
-    for item in PGDATA.iterdir():
-        if item.is_dir():
-            shutil.rmtree(item)
-        else:
-            item.unlink()
-    print("   PGDATA limpio.")
-
-
-def extract_backup(tar_path: Path):
-    print(f"   Extrayendo {tar_path.name} → {PGDATA} ...")
+def extract_tar(tar_path, dest):
+    """Extrae tar.gz con strip-components=1 si hay carpeta raíz."""
     with tarfile.open(tar_path, "r:gz") as tf:
         members = tf.getmembers()
-
-        # Detectar si hay un directorio raíz común (strip-components=1)
         roots = {m.name.split("/")[0] for m in members if "/" in m.name}
         strip = len(roots) == 1
-
         for member in members:
             if strip:
                 parts = member.name.split("/", 1)
                 if len(parts) < 2 or not parts[1]:
                     continue
                 member.name = parts[1]
-
-            tf.extract(member, path=PGDATA, filter="tar")
-
-    print("   Extracción completada.")
-
-
-def show_wal_files():
-    """Muestra los WALs disponibles en /wal-archive."""
-    if not WAL_ARCHIVE.exists():
-        print("   ⚠️  /wal-archive no encontrado o no montado.")
-        return
-
-    wals = sorted([
-        f for f in WAL_ARCHIVE.iterdir()
-        if f.is_file() and not f.name.startswith(".")
-    ])
-
-    if not wals:
-        print("   ⚠️  No hay archivos WAL en /wal-archive.")
-        return
-
-    total_mb = sum(f.stat().st_size for f in wals) / 1_048_576
-    print(f"   Archivos WAL encontrados: {len(wals)}  ({total_mb:.1f} MB total)\n")
-
-    # Separar history files de WAL segments
-    history  = [f for f in wals if f.suffix == ".history"]
-    segments = [f for f in wals if f.suffix != ".history"]
-
-    if history:
-        print("   Timeline history:")
-        for f in history:
-            print(f"     • {f.name}")
-        print()
-
-    if segments:
-        print("   WAL segments:")
-        if len(segments) <= 20:
-            for f in segments:
-                size_kb = f.stat().st_size / 1024
-                print(f"     • {f.name}  ({size_kb:.0f} KB)")
-        else:
-            for f in segments[:5]:
-                size_kb = f.stat().st_size / 1024
-                print(f"     • {f.name}  ({size_kb:.0f} KB)")
-            print(f"     ... {len(segments) - 10} archivos más ...")
-            for f in segments[-5:]:
-                size_kb = f.stat().st_size / 1024
-                print(f"     • {f.name}  ({size_kb:.0f} KB)")
-
-    if segments:
-        print(f"\n   Rango de recovery:")
-        print(f"     Desde : {segments[0].name}")
-        print(f"     Hasta : {segments[-1].name}")
-
-
-def write_recovery_config():
-    """
-    Escribe recovery.signal y postgresql.auto.conf para PITR.
-    El restore_command apunta a /wal-archive que está montado en el contenedor db.
-    """
-    signal = PGDATA / "recovery.signal"
-    signal.touch()
-    print(f"   Creado: {signal}")
-
-    autoconf = PGDATA / "postgresql.auto.conf"
-    autoconf.write_text(
-        "# Generado por restore.py\n"
-        "restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'\n"
-        "recovery_target_timeline = 'latest'\n"
-    )
-    print(f"   Escrito: {autoconf}")
-
+            tf.extract(member, path=dest, filter="tar")
 
 def fix_permissions():
-    """postgres (uid 999) debe ser dueño de PGDATA."""
-    print(f"   Ajustando permisos en {PGDATA} ...")
-    for item in PGDATA.rglob("*"):
-        try:
-            os.chmod(item, 0o700 if item.is_dir() else 0o600)
-        except Exception:
-            pass
     for item in [PGDATA] + list(PGDATA.rglob("*")):
         try:
+            os.chmod(item, 0o700 if item.is_dir() else 0o600)
             os.chown(item, 999, 999)
         except Exception:
             pass
-    print("   Permisos OK.")
 
+def find_start_wal(pgdata: Path) -> str | None:
+    """
+    Lee el archivo backup_label en PGDATA para obtener el WAL segment
+    desde el cual debe comenzar el recovery.
+    Devuelve el nombre del segment (24 chars hex) o None.
+    """
+    label = pgdata / "backup_label"
+    if not label.exists():
+        return None
+
+    for line in label.read_text(errors="ignore").splitlines():
+        # START WAL LOCATION: 0/3000028 (file 000000010000000000000003)
+        if "START WAL LOCATION" in line and "(file " in line:
+            match = re.search(r'\(file ([0-9A-F]{24})\)', line)
+            if match:
+                return match.group(1)
+    return None
+
+def wal_segment_id(name: str) -> str:
+    """Extrae los 24 chars hex base de un nombre WAL para comparación."""
+    return name[:24]
+
+def list_wal_files(client, wal_root):
+    """
+    Recorre wal_root que puede tener subcarpetas por timeline.
+    Devuelve lista de (remote_path, filename) ordenada.
+    """
+    result = []
+    try:
+        top = client.storage.from_(BUCKET).list(wal_root)
+    except Exception as e:
+        print(f"        No se pudo listar {wal_root}: {e}")
+        return result
+
+    for item in sorted(top, key=lambda x: x["name"]):
+        name = item["name"]
+        if name in WAL_IGNORE:
+            continue
+
+        is_folder = item.get("id") is None
+
+        if is_folder:
+            sub_path = f"{wal_root}/{name}"
+            try:
+                sub_items = client.storage.from_(BUCKET).list(sub_path)
+            except Exception:
+                continue
+            for sub in sorted(sub_items, key=lambda x: x["name"]):
+                sub_name = sub["name"]
+                if sub_name not in WAL_IGNORE:
+                    result.append((f"{sub_path}/{sub_name}", sub_name))
+        else:
+            result.append((f"{wal_root}/{name}", name))
+
+    return result
+
+def filter_wal_files(all_files, start_wal: str):
+    """
+    Filtra la lista de WALs para incluir solo los necesarios:
+    - Todos los .history (necesarios para timeline switching)
+    - El archivo .backup del segment de inicio
+    - Todos los segmentos WAL >= start_wal
+    """
+    needed   = []
+    skipped  = 0
+
+    for remote_path, name in all_files:
+        base = wal_segment_id(name)  # primeros 24 chars
+
+        if WAL_HISTORY.match(name):
+            # Siempre incluir history files
+            needed.append((remote_path, name, "history"))
+
+        elif WAL_BACKUP.match(name):
+            # Incluir el .backup si corresponde al segment de inicio o posterior
+            if base >= start_wal:
+                needed.append((remote_path, name, "backup"))
+            else:
+                skipped += 1
+
+        elif WAL_SEGMENT.match(name):
+            # Incluir segmentos >= start_wal
+            if name >= start_wal:
+                needed.append((remote_path, name, "segment"))
+            else:
+                skipped += 1
+
+        else:
+            # Archivo desconocido — ignorar
+            pass
+
+    return needed, skipped
 
 # ---------------------------------------------------------------------------
 # Main
@@ -211,53 +170,104 @@ def main():
         print(__doc__)
         abort("Debes indicar el nombre del backup. Ej: base_20260428_013453")
 
-    backup_name = sys.argv[1].replace(".tar.gz", "").strip()
-    print(f"\n{'='*55}")
-    print(f"  RESTORE: {backup_name}")
-    print(f"{'='*55}\n")
+    backup = sys.argv[1].replace(".tar.gz", "").strip()
+    year   = backup[5:9]
+    month  = backup[9:11]
 
-    # 1. Validar entorno
-    print("[1/5] Validando entorno...")
+    print(f"\n{'='*50}")
+    print(f"  RESTORE: {backup}")
+    print(f"{'='*50}\n")
+
     check_env()
-    print(f"   PGDATA      : {PGDATA}")
-    print(f"   WAL archive : {WAL_ARCHIVE}")
-    print(f"   Bucket      : {SUPABASE_BUCKET}")
+    print(f"PGDATA      : {PGDATA}")
+    print(f"WAL archive : {WAL_ARCHIVE}")
+    print(f"Bucket      : {BUCKET}\n")
 
-    # 2. Conectar a Supabase
-    print("\n[2/5] Conectando a Supabase Storage...")
     client = create_client(SUPABASE_URL, SUPABASE_KEY)
-    print("   Conexión OK.")
 
-    # 3. Descargar backup
-    print("\n[3/5] Descargando base backup...")
-    remote_path = build_remote_path(backup_name)
+    # 1. Descargar base backup
+    remote_backup = f"base/{year}/{month}/{backup}.tar.gz"
+    print(f"[1/4] Descargando base backup...")
+    print(f"      {remote_backup}")
+
     with tempfile.TemporaryDirectory() as tmp:
-        tmp_path = Path(tmp)
-        tar_path = download_backup(client, remote_path, tmp_path)
+        tar_path = Path(tmp) / "backup.tar.gz"
+        data = client.storage.from_(BUCKET).download(remote_backup)
+        tar_path.write_bytes(data)
+        size_mb = tar_path.stat().st_size / 1_048_576
+        print(f"      {size_mb:.1f} MB descargados")
 
-        # 4. Restaurar
-        print("\n[4/5] Restaurando backup...")
-        clear_pgdata()
-        extract_backup(tar_path)
+        # 2. Extraer
+        print(f"\n[2/4] Restaurando en {PGDATA}...")
+        clear_dir(PGDATA)
+        extract_tar(tar_path, PGDATA)
+        print(f"      Extracción completada")
 
-    # 5. Configurar recovery
-    print("\n[5/5] Configurando PITR recovery...")
-    write_recovery_config()
+    # Leer WAL de inicio desde backup_label
+    start_wal = find_start_wal(PGDATA)
+    if start_wal:
+        print(f"      WAL de inicio (backup_label): {start_wal}")
+    else:
+        print(f"        No se encontró backup_label — se descargarán todos los WALs")
+
+    # 3. Descargar WALs filtrados
+    print(f"\n[3/4] Descargando WALs desde Supabase...")
+    wal_root  = f"base/{year}/{month}/wal"
+    all_files = list_wal_files(client, wal_root)
+
+    if not all_files:
+        print("        No hay WALs en Supabase — recovery solo con base backup")
+    else:
+        if start_wal:
+            needed, skipped = filter_wal_files(all_files, start_wal)
+            print(f"      Total en Supabase : {len(all_files)} archivos")
+            print(f"      Omitidos (previos): {skipped}")
+            print(f"      A descargar       : {len(needed)}\n")
+        else:
+            needed  = [(r, n, "segment") for r, n in all_files]
+            skipped = 0
+            print(f"      Descargando todos : {len(needed)} archivos\n")
+
+        if not needed:
+            print("        No hay WALs necesarios después del backup")
+        else:
+            clear_dir(WAL_ARCHIVE)
+            WAL_ARCHIVE.mkdir(exist_ok=True)
+
+            total    = len(needed)
+            total_mb = 0
+            segments = [n for _, n, t in needed if t == "segment"]
+
+            for i, (remote_path, name, kind) in enumerate(needed, 1):
+                tag = {"segment": "WAL", "backup": "BCK", "history": "HST"}[kind]
+                print(f"      [{i:>3}/{total}] [{tag}] ↓ {name}")
+                data = client.storage.from_(BUCKET).download(remote_path)
+                (WAL_ARCHIVE / name).write_bytes(data)
+                total_mb += len(data) / 1_048_576
+
+            print(f"\n      {total} archivos  ({total_mb:.1f} MB total)")
+            if segments:
+                print(f"      Desde : {segments[0]}")
+                print(f"      Hasta : {segments[-1]}")
+
+    # 4. Configurar recovery
+    print(f"\n[4/4] Configurando PITR recovery...")
+    (PGDATA / "recovery.signal").touch()
+    (PGDATA / "postgresql.auto.conf").write_text(
+        "# Generado por restore.py\n"
+        "restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'\n"
+        "recovery_target_timeline = 'latest'\n"
+    )
     fix_permissions()
+    print(f"      recovery.signal + postgresql.auto.conf escritos")
+    print(f"      Permisos ajustados (uid 999)")
 
-    # 6. Mostrar WALs disponibles
-    print("\n[+] WALs disponibles para recovery:")
-    show_wal_files()
-
-    print(f"\n{'='*55}")
-    print("  ✅ RESTORE COMPLETO")
-    print(f"{'='*55}")
-    print("\nPróximo paso — reiniciar la base de datos:")
-    print("   docker compose up -d db")
-    print("\nPostgreSQL aplicará los WALs automáticamente al iniciar.")
-    print("Verifica el progreso con:")
-    print("   docker compose logs -f db\n")
-
+    print(f"\n{'='*50}")
+    print(f"   RESTORE COMPLETO")
+    print(f"{'='*50}")
+    print(f"\nPróximo paso:")
+    print(f"   docker compose up -d db")
+    print(f"   docker compose logs -f db\n")
 
 if __name__ == "__main__":
     main()
