@@ -2,9 +2,25 @@ version: "3.9"
 
 services:
 
+  # ✅ Corre primero y arregla permisos del wal-archive
+  init-wal:
+    image: busybox
+    restart: "no"
+    volumes:
+      - ./wal-archive:/var/lib/postgresql/wal_archive
+    command: >
+      sh -c "
+        chown -R 999:999 /var/lib/postgresql/wal_archive &&
+        chmod 700 /var/lib/postgresql/wal_archive &&
+        echo '[INIT] Permisos wal-archive corregidos'
+      "
+
   db:
     image: postgres:15
     restart: always
+    depends_on:
+      init-wal:                         # ✅ Espera a que init-wal termine
+        condition: service_completed_successfully
     environment:
       POSTGRES_DB: FlorsyncBD
       POSTGRES_USER: postgres
@@ -32,21 +48,19 @@ services:
       timeout: 5s
       retries: 5
 
-  
   restore:
     build: ./florsync_backend
-    restart: "no"                        # nunca reiniciar automáticamente
+    restart: "no"
     profiles:
-      - restore                          # no arranca con `docker compose up`
+      - restore
     env_file:
       - .env
     environment:
       PGDATA: /var/lib/postgresql/data
     volumes:
-      - ./florsync_backend:/app          # restore.py vive aquí
-      - postgres_data:/var/lib/postgresql/data   # acceso directo al volumen de pg
-      - ./wal-archive:/wal-archive       # WALs compartidos con db
-    # No hay command: se invoca manualmente con `docker compose run`
+      - ./florsync_backend:/app
+      - postgres_data:/var/lib/postgresql/data
+      - ./wal-archive:/wal-archive
 
   backend:
     build: ./florsync_backend

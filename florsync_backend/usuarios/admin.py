@@ -22,6 +22,25 @@ class CustomUsuarioCreationForm(forms.ModelForm):
             "is_active",
         )
 
+    def clean(self):
+        cleaned_data = super().clean()
+        first_name = cleaned_data.get("first_name", "").strip()
+        cedula = cleaned_data.get("cedula", "")
+        groups = cleaned_data.get("groups")
+
+        if not first_name:
+            self.add_error("first_name", "El nombre es obligatorio para generar el usuario.")
+
+        if not cedula or len(cedula) < 4:
+            self.add_error("cedula", "La cédula debe tener al menos 4 dígitos.")
+
+        if not groups:
+            self.add_error("groups", "Debe asignar al menos un grupo al usuario.")
+        elif groups.count() > 1:
+            self.add_error("groups", "Solo se puede asignar un grupo por usuario.")
+
+        return cleaned_data
+
 
 class CustomUsuarioChangeForm(forms.ModelForm):
     class Meta:
@@ -34,6 +53,17 @@ class CustomUsuarioChangeForm(forms.ModelForm):
             "groups",
             "is_active",
         )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        groups = cleaned_data.get("groups")
+
+        if not groups:
+            self.add_error("groups", "Debe asignar al menos un grupo al usuario.")
+        elif groups.count() > 1:
+            self.add_error("groups", "Solo se puede asignar un grupo por usuario.")
+
+        return cleaned_data
 
 
 # =========================
@@ -48,8 +78,12 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
     list_display = ("username", "email", "get_grupo", "is_active")
     filter_horizontal = ("groups",)
 
-    # 🔥 FIX: evita password fields del UserAdmin
     exclude = ("password",)
+
+    def get_form(self, request, obj=None, **kwargs):
+        if obj is None:
+            kwargs["form"] = self.add_form
+        return super().get_form(request, obj, **kwargs)
 
     def get_queryset(self, request):
         return Usuario.objects.all()
@@ -78,15 +112,20 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
             obj.set_password(password)
             obj.debe_cambiar_password = True
 
-            nombre = (obj.first_name or "").lower()
+            nombre = (obj.first_name or "").strip().lower()
             cedula = obj.cedula[-4:] if obj.cedula else ""
-            obj.username = f"{nombre}{cedula}"
+            username = f"{nombre}{cedula}"
+
+            if not username:
+                raise ValueError("No se puede generar un username válido sin nombre y cédula.")
+
+            obj.username = username
 
         obj.save()
         form.save_m2m()
 
         grupo = obj.groups.first()
-        obj.is_staff = grupo and grupo.name == "Administrador"
+        obj.is_staff = bool(grupo and grupo.name == "Administrador")
         obj.is_superuser = False
         obj.save()
 
