@@ -12,6 +12,7 @@ import re
 import tarfile
 import shutil
 import tempfile
+from datetime import date
 from pathlib import Path
 
 from supabase import create_client
@@ -27,9 +28,9 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
 BUCKET       = os.environ.get("SUPABASE_BUCKET", "backups")
 
 WAL_IGNORE   = {"last_wal_upload.txt"}
-WAL_SEGMENT  = re.compile(r'^[0-9A-F]{24}$')          # segmento WAL puro
-WAL_BACKUP   = re.compile(r'^[0-9A-F]{24}\.[0-9A-F]+\.backup$')  # .backup file
-WAL_HISTORY  = re.compile(r'^\d+\.history$')           # timeline history
+WAL_SEGMENT  = re.compile(r'^[0-9A-F]{24}$')
+WAL_BACKUP   = re.compile(r'^[0-9A-F]{24}\.[0-9A-F]+\.backup$')
+WAL_HISTORY  = re.compile(r'^\d+\.history$')
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -48,7 +49,6 @@ def clear_dir(path):
             shutil.rmtree(f) if f.is_dir() else f.unlink()
 
 def extract_tar(tar_path, dest):
-    """Extrae tar.gz con strip-components=1 si hay carpeta raíz."""
     with tarfile.open(tar_path, "r:gz") as tf:
         members = tf.getmembers()
         roots = {m.name.split("/")[0] for m in members if "/" in m.name}
@@ -61,8 +61,9 @@ def extract_tar(tar_path, dest):
                 member.name = parts[1]
             tf.extract(member, path=dest, filter="tar")
 
-def fix_permissions():
-    for item in [PGDATA] + list(PGDATA.rglob("*")):
+def fix_permissions(path):
+    """Aplica uid 999 y permisos correctos a un directorio y su contenido."""
+    for item in [path] + list(path.rglob("*")):
         try:
             os.chmod(item, 0o700 if item.is_dir() else 0o600)
             os.chown(item, 999, 999)
@@ -70,17 +71,10 @@ def fix_permissions():
             pass
 
 def find_start_wal(pgdata: Path) -> str | None:
-    """
-    Lee el archivo backup_label en PGDATA para obtener el WAL segment
-    desde el cual debe comenzar el recovery.
-    Devuelve el nombre del segment (24 chars hex) o None.
-    """
     label = pgdata / "backup_label"
     if not label.exists():
         return None
-
     for line in label.read_text(errors="ignore").splitlines():
-        # START WAL LOCATION: 0/3000028 (file 000000010000000000000003)
         if "START WAL LOCATION" in line and "(file " in line:
             match = re.search(r'\(file ([0-9A-F]{24})\)', line)
             if match:
@@ -88,14 +82,21 @@ def find_start_wal(pgdata: Path) -> str | None:
     return None
 
 def wal_segment_id(name: str) -> str:
-    """Extrae los 24 chars hex base de un nombre WAL para comparación."""
     return name[:24]
 
+def month_range(start_year: int, start_month: int) -> list[tuple[str, str]]:
+    today = date.today()
+    result = []
+    y, m = start_year, start_month
+    while (y, m) <= (today.year, today.month):
+        result.append((str(y), f"{m:02d}"))
+        m += 1
+        if m > 12:
+            m = 1
+            y += 1
+    return result
+
 def list_wal_files(client, wal_root):
-    """
-    Recorre wal_root que puede tener subcarpetas por timeline.
-    Devuelve lista de (remote_path, filename) ordenada.
-    """
     result = []
     try:
         top = client.storage.from_(BUCKET).list(wal_root)
@@ -107,9 +108,7 @@ def list_wal_files(client, wal_root):
         name = item["name"]
         if name in WAL_IGNORE:
             continue
-
         is_folder = item.get("id") is None
-
         if is_folder:
             sub_path = f"{wal_root}/{name}"
             try:
@@ -125,40 +124,52 @@ def list_wal_files(client, wal_root):
 
     return result
 
+def collect_all_wal_files(client, year: str, month: str) -> list[tuple[str, str]]:
+    start_year  = int(year)
+    start_month = int(month)
+    months      = month_range(start_year, start_month)
+
+    all_files: list[tuple[str, str]] = []
+    seen_names: set[str] = set()
+
+    for y_str, m_str in months:
+        wal_root = f"base/{y_str}/{m_str}/wal"
+        print(f"      Buscando WALs en: {wal_root}")
+        files = list_wal_files(client, wal_root)
+        added = 0
+        for remote_path, name in files:
+            if name not in seen_names:
+                seen_names.add(name)
+                all_files.append((remote_path, name))
+                added += 1
+        if files:
+            print(f"        → {added} archivos encontrados")
+        else:
+            print(f"        → (vacío o no existe)")
+
+    return all_files
+
 def filter_wal_files(all_files, start_wal: str):
-    """
-    Filtra la lista de WALs para incluir solo los necesarios:
-    - Todos los .history (necesarios para timeline switching)
-    - El archivo .backup del segment de inicio
-    - Todos los segmentos WAL >= start_wal
-    """
-    needed   = []
-    skipped  = 0
+    needed  = []
+    skipped = 0
 
     for remote_path, name in all_files:
-        base = wal_segment_id(name)  # primeros 24 chars
+        base = wal_segment_id(name)
 
         if WAL_HISTORY.match(name):
-            # Siempre incluir history files
             needed.append((remote_path, name, "history"))
 
         elif WAL_BACKUP.match(name):
-            # Incluir el .backup si corresponde al segment de inicio o posterior
             if base >= start_wal:
                 needed.append((remote_path, name, "backup"))
             else:
                 skipped += 1
 
         elif WAL_SEGMENT.match(name):
-            # Incluir segmentos >= start_wal
             if name >= start_wal:
                 needed.append((remote_path, name, "segment"))
             else:
                 skipped += 1
-
-        else:
-            # Archivo desconocido — ignorar
-            pass
 
     return needed, skipped
 
@@ -203,24 +214,22 @@ def main():
         extract_tar(tar_path, PGDATA)
         print(f"      Extracción completada")
 
-    # Leer WAL de inicio desde backup_label
     start_wal = find_start_wal(PGDATA)
     if start_wal:
         print(f"      WAL de inicio (backup_label): {start_wal}")
     else:
-        print(f"        No se encontró backup_label — se descargarán todos los WALs")
+        print(f"      No se encontró backup_label — se descargarán todos los WALs")
 
-    # 3. Descargar WALs filtrados
+    # 3. Descargar WALs
     print(f"\n[3/4] Descargando WALs desde Supabase...")
-    wal_root  = f"base/{year}/{month}/wal"
-    all_files = list_wal_files(client, wal_root)
+    all_files = collect_all_wal_files(client, year, month)
 
     if not all_files:
-        print("        No hay WALs en Supabase — recovery solo con base backup")
+        print("      No hay WALs en Supabase — recovery solo con base backup")
     else:
         if start_wal:
             needed, skipped = filter_wal_files(all_files, start_wal)
-            print(f"      Total en Supabase : {len(all_files)} archivos")
+            print(f"\n      Total en Supabase : {len(all_files)} archivos")
             print(f"      Omitidos (previos): {skipped}")
             print(f"      A descargar       : {len(needed)}\n")
         else:
@@ -229,7 +238,7 @@ def main():
             print(f"      Descargando todos : {len(needed)} archivos\n")
 
         if not needed:
-            print("        No hay WALs necesarios después del backup")
+            print("      No hay WALs necesarios después del backup")
         else:
             clear_dir(WAL_ARCHIVE)
             WAL_ARCHIVE.mkdir(exist_ok=True)
@@ -258,9 +267,15 @@ def main():
         "restore_command = 'cp /var/lib/postgresql/wal_archive/%f %p'\n"
         "recovery_target_timeline = 'latest'\n"
     )
-    fix_permissions()
+
+    # Permisos PGDATA
+    fix_permissions(PGDATA)
     print(f"      recovery.signal + postgresql.auto.conf escritos")
-    print(f"      Permisos ajustados (uid 999)")
+    print(f"      Permisos PGDATA ajustados (uid 999)")
+
+    # Permisos WAL_ARCHIVE — DESPUÉS de descargar todo
+    fix_permissions(WAL_ARCHIVE)
+    print(f"      Permisos WAL_ARCHIVE ajustados (uid 999)")
 
     print(f"\n{'='*50}")
     print(f"   RESTORE COMPLETO")

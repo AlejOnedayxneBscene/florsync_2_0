@@ -38,13 +38,13 @@ export default function DashboardAdmin() {
 
   if (!data) return <div>Error cargando datos</div>;
 
-  const periodLabel = data?.period
-    ? filter.view === "day"
-      ? data.period.start
-      : filter.view === "week"
-      ? `${data.period.start} — ${data.period.end}`
-      : data.period.start?.slice(0, 7)
-    : "";
+const periodLabel = filter.view === "day"
+  ? new Date(data.period?.start + "T00:00:00")
+      .toLocaleDateString("es-CO", { day: "numeric", month: "long", year: "numeric" })
+  : filter.view === "week"
+  ? `${data.period?.start} — ${data.period?.end}`
+  : new Date(data.period?.start + "T00:00:00")
+      .toLocaleDateString("es-CO", { month: "long", year: "numeric" });
 
   return (
     <div className="p-6 space-y-6 bg-gray-100 min-h-screen">
