@@ -184,16 +184,17 @@ STATICFILES_DIRS = []
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://florsync-2-0-dn5071zz3-florsync.vercel.app",
+]
+
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://florsync-2-0-[a-z0-9]+-florsync\.vercel\.app$",
 ]
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "https://florsync-2-0-dn5071zz3-florsync.vercel.app",
 ]
-
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
