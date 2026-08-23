@@ -163,6 +163,8 @@ import certifi
 # Parchear SSL globalmente para usar certifi
 ssl._create_default_https_context = lambda: ssl.create_default_context(cafile=certifi.where())
 
+
+
 # Email
 EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 EMAIL_HOST = "smtp.gmail.com"

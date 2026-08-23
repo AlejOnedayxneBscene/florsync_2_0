@@ -134,12 +134,16 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
                 "email": obj.email
             })
 
-            send_mail(
-                subject="Bienvenido",
-                message=f"Usuario: {obj.username}\nPassword: {password}",
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[obj.email],
-            )
+            try:
+                send_mail(
+                    subject="Bienvenido",
+                    message=f"Usuario: {obj.username}\nPassword: {password}",
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[obj.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"ERROR enviando correo: {e}")
         else:
             self.log(request, "UPDATE", obj, {
                 "username": obj.username,
