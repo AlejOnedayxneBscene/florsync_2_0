@@ -9,7 +9,7 @@ urlpatterns = [
     path('api/usuarios/', include('usuarios.urls')),
 
     # API
-    path('api/', include('api.url')),
+    path('api/', include('api.urls')),
 
     # JWT
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
