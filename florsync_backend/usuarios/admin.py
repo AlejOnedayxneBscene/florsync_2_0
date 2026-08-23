@@ -129,6 +129,8 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
         obj.save()
         print(password)
         if is_new:
+            print(password)
+
             self.log(request, "CREATE", obj, {
                 "username": obj.username,
                 "email": obj.email
