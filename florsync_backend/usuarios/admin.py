@@ -103,57 +103,75 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
     # =========================
     # CREATE / UPDATE
     # =========================
-    def save_model(self, request, obj, form, change):
-        is_new = not change
+def save_model(self, request, obj, form, change):
+    is_new = not change
 
-        if is_new:
-            password = secrets.token_urlsafe(8)
-            obj.set_password(password)
-            obj.debe_cambiar_password = True
+    if is_new:
+        # Generar contraseña temporal
+        password = secrets.token_urlsafe(8)
 
-            nombre = (obj.first_name or "").strip().lower()
-            cedula = obj.cedula[-4:] if obj.cedula else ""
-            username = f"{nombre}{cedula}"
+        obj.set_password(password)
+        obj.debe_cambiar_password = True
 
-            if not username:
-                raise ValueError("No se puede generar un username válido sin nombre y cédula.")
+        # Generar username
+        nombre = (obj.first_name or "").strip().lower()
+        cedula = obj.cedula[-4:] if obj.cedula else ""
 
-            obj.username = username
+        username = f"{nombre}{cedula}"
 
-        obj.save()
+        if not username:
+            raise ValueError(
+                "No se puede generar un username válido sin nombre y cédula."
+            )
+
+        obj.username = username
+
+    # Guardar usuario
+    obj.save()
+
+    # Guardar grupos
+    form.save_m2m()
+
+    # Obtener grupo
+    grupo = obj.groups.first()
+
+    # Permisos
+    obj.is_staff = bool(
+        grupo and grupo.name == "Administrador"
+    )
+
+    obj.is_superuser = False
+
+    obj.save()
+
+    # =========================
+    # NUEVO USUARIO
+    # =========================
+
+    if is_new:
+
+        # Mostrar credenciales en logs de Render
         print("========================================")
         print(f"USUARIO: {obj.username}")
         print(f"CONTRASEÑA: {password}")
         print("========================================")
-        form.save_m2m()
 
-        grupo = obj.groups.first()
-        obj.is_staff = bool(grupo and grupo.name == "Administrador")
-        obj.is_superuser = False
-        obj.save()
+        # Auditoría
+        self.log(request, "CREATE", obj, {
+            "username": obj.username,
+            "email": obj.email
+        })
 
-        if is_new:
-            self.log(request, "CREATE", obj, {
-                "username": obj.username,
-                "email": obj.email
-            })
+    # =========================
+    # ACTUALIZACIÓN
+    # =========================
 
-            try:
-                # send_mail(
-#     subject="Bienvenido",
-#     message=f"Usuario: {obj.username}\nPassword: {password}",
-#     from_email=settings.DEFAULT_FROM_EMAIL,
-#     recipient_list=[obj.email],
-#     fail_silently=False,
-# )
-            except Exception as e:
-                print(f"ERROR enviando correo: {e}")
-        else:
-            self.log(request, "UPDATE", obj, {
-                "username": obj.username,
-                "email": obj.email
-            })
+    else:
 
+        self.log(request, "UPDATE", obj, {
+            "username": obj.username,
+            "email": obj.email
+        })
     # =========================
     # DELETE = SOLO DESACTIVAR
     # =========================
