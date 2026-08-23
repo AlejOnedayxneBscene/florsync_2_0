@@ -103,75 +103,43 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
     # =========================
     # CREATE / UPDATE
     # =========================
-def save_model(self, request, obj, form, change):
-    is_new = not change
+    def save_model(self, request, obj, form, change):
+        is_new = not change
 
-    if is_new:
-        # Generar contraseña temporal
-        password = secrets.token_urlsafe(8)
+        if is_new:
+            password = secrets.token_urlsafe(8)
+            obj.set_password(password)
+            obj.debe_cambiar_password = True
 
-        obj.set_password(password)
-        obj.debe_cambiar_password = True
+            nombre = (obj.first_name or "").strip().lower()
+            cedula = obj.cedula[-4:] if obj.cedula else ""
+            username = f"{nombre}{cedula}"
 
-        # Generar username
-        nombre = (obj.first_name or "").strip().lower()
-        cedula = obj.cedula[-4:] if obj.cedula else ""
+            if not username:
+                raise ValueError("No se puede generar un username válido sin nombre y cédula.")
 
-        username = f"{nombre}{cedula}"
+            obj.username = username
 
-        if not username:
-            raise ValueError(
-                "No se puede generar un username válido sin nombre y cédula."
-            )
+        obj.save()
+        form.save_m2m()
 
-        obj.username = username
+        grupo = obj.groups.first()
+        obj.is_staff = bool(grupo and grupo.name == "Administrador")
+        obj.is_superuser = False
+        obj.save()
+        print(password)
+        if is_new:
+            self.log(request, "CREATE", obj, {
+                "username": obj.username,
+                "email": obj.email
+            })
 
-    # Guardar usuario
-    obj.save()
+        else:
+            self.log(request, "UPDATE", obj, {
+                "username": obj.username,
+                "email": obj.email
+            })
 
-    # Guardar grupos
-    form.save_m2m()
-
-    # Obtener grupo
-    grupo = obj.groups.first()
-
-    # Permisos
-    obj.is_staff = bool(
-        grupo and grupo.name == "Administrador"
-    )
-
-    obj.is_superuser = False
-
-    obj.save()
-
-    # =========================
-    # NUEVO USUARIO
-    # =========================
-
-    if is_new:
-
-        # Mostrar credenciales en logs de Render
-        print("========================================")
-        print(f"USUARIO: {obj.username}")
-        print(f"CONTRASEÑA: {password}")
-        print("========================================")
-
-        # Auditoría
-        self.log(request, "CREATE", obj, {
-            "username": obj.username,
-            "email": obj.email
-        })
-
-    # =========================
-    # ACTUALIZACIÓN
-    # =========================
-
-    else:
-
-        self.log(request, "UPDATE", obj, {
-            "username": obj.username,
-            "email": obj.email
-        })
     # =========================
     # DELETE = SOLO DESACTIVAR
     # =========================
