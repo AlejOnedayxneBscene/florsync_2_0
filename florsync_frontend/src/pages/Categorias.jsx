@@ -12,7 +12,7 @@ import Button from "../components/iu/Button";
 import Buscador from "../components/iu/Buscador";
 import Form from "../components/iu/CategoriasForms";
 import DataTable from "../components/iu/CategoriasList";
-import RegistroAnimacion from "../components/iu/registroAnimacion";
+import RegistroAnimacion from "../components/iu/RegistroAnimacion";
 
 const Categorias = () => {
   const [categorias, setCategorias] = useState([]);
