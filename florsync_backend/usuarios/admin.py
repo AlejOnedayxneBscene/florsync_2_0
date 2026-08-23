@@ -7,8 +7,7 @@ from django.conf import settings
 from auditoria.models import AuditLog
 
 
-# =========================
-# FORMS
+
 # =========================
 class CustomUsuarioCreationForm(forms.ModelForm):
     class Meta:

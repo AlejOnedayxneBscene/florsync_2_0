@@ -11,7 +11,7 @@ import DataTable from "../components/iu/CategoriasList";
 import Form from "../components/iu/CategoriasForms";
 import Buscador from "../components/iu/Buscador";
 import { AnimatePresence } from "framer-motion";
-import RegistroAnimacion from "../components/iu/registroAnimacion";
+import RegistroAnimacion from "../components/iu/RegistroAnimacion";
 const Clientes = () => {
 
   
