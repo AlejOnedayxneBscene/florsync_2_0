@@ -28,7 +28,12 @@ SECRET_KEY = 'django-insecure-l(yp&w8joxbngb5qlwpdl34v(g58pg#$g$votllhi#yv(l0ag4
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+import os
+
+ALLOWED_HOSTS = os.getenv(
+    'ALLOWED_HOSTS',
+    'localhost,127.0.0.1'
+).split(',')
 
 
 # Application definition
@@ -174,16 +179,16 @@ STATICFILES_DIRS = []
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://florsync-2-0-git-main-florsync.vercel.app",
 ]
-
 
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
+    "https://florsync-2-0-git-main-florsync.vercel.app",
 ]
-
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
