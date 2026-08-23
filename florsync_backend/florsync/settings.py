@@ -60,8 +60,9 @@ AUTH_USER_MODEL = 'usuarios.Usuario'
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
-    'whitenoise.middleware.WhiteNoiseMiddleware',
+
     'corsheaders.middleware.CorsMiddleware',
+
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -69,7 +70,6 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
-
 
 ROOT_URLCONF = 'florsync.urls'
 
@@ -184,15 +184,14 @@ STATICFILES_DIRS = []
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
-    "https://florsync-2-0-git-main-florsync.vercel.app",
+    "https://florsync-2-0-dn5071zz3-florsync.vercel.app",
 ]
-
 
 CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
-    "https://florsync-2-0-git-main-florsync.vercel.app",
+    "https://florsync-2-0-dn5071zz3-florsync.vercel.app",
 ]
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
