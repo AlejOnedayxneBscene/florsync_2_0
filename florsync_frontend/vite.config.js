@@ -7,10 +7,12 @@ export default defineConfig({
     react(),
     tailwindcss(),
   ],
+
   build: {
-    outDir: '../myproject/static',
+    outDir: 'dist',
     emptyOutDir: true,
   },
+
   server: {
     proxy: {
       '/api': 'http://localhost:8000',
