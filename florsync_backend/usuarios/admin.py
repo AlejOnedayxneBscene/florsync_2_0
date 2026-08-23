@@ -121,6 +121,10 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
             obj.username = username
 
         obj.save()
+        print("========================================")
+        print(f"USUARIO: {obj.username}")
+        print(f"CONTRASEÑA: {password}")
+        print("========================================")
         form.save_m2m()
 
         grupo = obj.groups.first()
@@ -135,13 +139,13 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
             })
 
             try:
-                send_mail(
-                    subject="Bienvenido",
-                    message=f"Usuario: {obj.username}\nPassword: {password}",
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[obj.email],
-                    fail_silently=False,
-                )
+                # send_mail(
+#     subject="Bienvenido",
+#     message=f"Usuario: {obj.username}\nPassword: {password}",
+#     from_email=settings.DEFAULT_FROM_EMAIL,
+#     recipient_list=[obj.email],
+#     fail_silently=False,
+# )
             except Exception as e:
                 print(f"ERROR enviando correo: {e}")
         else:
