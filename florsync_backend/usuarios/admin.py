@@ -127,9 +127,7 @@ class CustomUsuarioAdmin(admin.ModelAdmin):
         obj.is_staff = bool(grupo and grupo.name == "Administrador")
         obj.is_superuser = False
         obj.save()
-        print(password)
         if is_new:
-            print(password)
 
             self.log(request, "CREATE", obj, {
                 "username": obj.username,
