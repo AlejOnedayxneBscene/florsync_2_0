@@ -3,7 +3,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "https://florsync-2-0-1.onrender.com",
+    baseURL: "https://florsync-2-0-1.onrender.com/api/",
     timeout: 10000,
 });
 
@@ -60,7 +60,7 @@ api.interceptors.response.use(
                 }
 
                 const res = await axios.post(
-                    "https://florsync-2-0-1.onrender.com/token/refresh/",
+                    "https://florsync-2-0-1.onrender.com/api/token/refresh/",
                     {
                         refresh: refresh,
                     }
