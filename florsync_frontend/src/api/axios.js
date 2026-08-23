@@ -60,7 +60,7 @@ api.interceptors.response.use(
                 }
 
                 const res = await axios.post(
-                    "https://florsync-2-0-1.onrender.com/api/token/refresh/",
+                    "https://florsync-2-0-1.onrender.com/token/refresh/",
                     {
                         refresh: refresh,
                     }
