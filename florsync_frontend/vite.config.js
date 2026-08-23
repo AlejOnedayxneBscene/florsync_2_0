@@ -15,7 +15,7 @@ export default defineConfig({
 
   server: {
     proxy: {
-      '/api': 'http://localhost:8000',
+      '/api': 'https://florsync-2-0-1.onrender.com/api/',
     },
   },
 })

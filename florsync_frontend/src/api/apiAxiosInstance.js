@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: "http://localhost:8000",
+  baseURL: "https://florsync-2-0-1.onrender.com/api/",
 });
 
 api.interceptors.request.use((config) => {
