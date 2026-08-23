@@ -3,7 +3,7 @@
 import axios from "axios";
 
 const api = axios.create({
-    baseURL: "https://florsync-2-0-1.onrender.com/api/",
+    baseURL: "https://florsync-2-0-1.onrender.com",
     timeout: 10000,
 });
 
