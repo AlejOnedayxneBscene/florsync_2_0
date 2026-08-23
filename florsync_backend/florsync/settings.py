@@ -90,17 +90,18 @@ WSGI_APPLICATION = 'florsync.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.1/ref/settings/#databases
 
+import os
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'FlorsyncBD',  # El nombre de tu base de datos
-        'USER': 'postgres',     # El usuario de la base de datos
-        'PASSWORD': 'florsync123',  # La contraseña del usuario
-        'HOST': 'db',  # El nombre del servicio de la base de datos en docker-compose
-        'PORT': '5432',  # Puerto estándar de PostgreSQL
+        'NAME': os.getenv('DB_NAME', 'FlorsyncBD'),
+        'USER': os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', 'florsync123'),
+        'HOST': os.getenv('DB_HOST', 'db'),
+        'PORT': os.getenv('DB_PORT', '5432'),
     }
 }
-
 
 SUPABASE_URL           = os.environ.get('SUPABASE_URL', '')
 SUPABASE_SERVICE_KEY   = os.environ.get('SUPABASE_SERVICE_ROLE_KEY', '')  # ← nombre corregido
