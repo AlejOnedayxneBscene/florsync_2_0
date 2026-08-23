@@ -9,8 +9,9 @@ RUN apt-get update && apt-get install -y \
 WORKDIR /app
 
 COPY requirements.txt /app/
+
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . /app/
 
-CMD ["sh", "-c", "python manage.py migrate && gunicorn --bind 0.0.0.0:${PORT:-10000} florsync.wsgi:application"]
+CMD ["sh", "-c", "python manage.py collectstatic --noinput && python manage.py migrate && python manage.py create_admin && gunicorn --bind 0.0.0.0:${PORT:-10000} florsync.wsgi:application"]
