@@ -70,7 +70,7 @@ const handleSubmit = async (e, setError, setFieldError) => {
     <LoginContainer>
       <div className="flex flex-col md:flex-row w-full h-full gap-2 md:gap-4">
         {/* Left column: slider */}
-        <div className="w-full md:w-[55%] h-auto md:h-full max-h-full overflow-hidden rounded-lg">
+        <div className="hidden md:block w-full md:w-[55%] h-auto md:h-full max-h-full overflow-hidden rounded-lg">
           <Carousel />
         </div>
 
