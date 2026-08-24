@@ -30,7 +30,7 @@ export default function LoginContainer({ children }) {
     gap-3
     shadow-xl
     w-[95vw] min-w-[320px] max-w-[1600px]
-    h-[90vh]
+    min-h-[90vh] h-auto md:h-[90vh]
   "
 >
 

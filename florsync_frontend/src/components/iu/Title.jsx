@@ -4,12 +4,11 @@ function Title({ text, className = "", ...rest }) {
       className={`
         font-bold
         text-center
-        text-[80px]
+        text-[32px] md:text-[80px]
         p-2
         text-white
         tracking-wide
         drop-shadow-[0_2px_6px_rgba(0,0,0,0.6)]
-        whitespace-nowrap
         ${className}
       `}
       style={{ fontFamily: '"Jockey One", sans-serif' }}

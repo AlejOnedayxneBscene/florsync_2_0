@@ -34,14 +34,14 @@ const onSubmit = async (e) => {
   });
 };
   return (
-   <div className="w-full md:w-1/2 flex flex-col justify-center items-center gap-8 text-white h-full">
+   <div className="w-full md:w-1/2 flex flex-col justify-center items-center gap-4 md:gap-8 text-white h-full">
   <Title text="Inicio de sesión" />
 
   {error && (
-    <p className="text-red-500 bg-red-100 px-4 py-2 rounded-lg mb-4">{error}</p>
+    <p className="text-red-500 bg-red-100 px-4 py-2 rounded-lg mb-2 md:mb-4 text-sm md:text-base">{error}</p>
   )}
 
-  <form onSubmit={onSubmit} className="flex flex-col gap-15 w-full max-w-sm items-center">
+  <form onSubmit={onSubmit} className="flex flex-col gap-8 md:gap-15 w-full max-w-sm items-center px-4 md:px-0">
     <Input
   type="text"
   name="id_usuario"

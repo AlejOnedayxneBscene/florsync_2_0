@@ -20,34 +20,34 @@ export default function Carousel() {
   };
 
   return (
-    <div className="w-full max-w-4xl mx-auto mt-10, h-10">
+    <div className="w-full max-w-4xl mx-auto mt-4 md:mt-10">
       <SlickSlider {...settings}>
         <div>
           <img 
             src="/images/girasoles.jpeg" 
             alt="Imagen 1" 
-            className="w-full max-h-[400px] md:max-h-[820px] rounded-lg"
+            className="w-full max-h-[180px] md:max-h-[820px] rounded-lg"
           />
         </div>
         <div>
           <img 
             src="/images/ramo_rosas_rosadas.jpeg" 
             alt="Imagen 2" 
-            className="w-full max-h-[400px] md:max-h-[820px] rounded-lg"
+            className="w-full max-h-[180px] md:max-h-[820px] rounded-lg"
           />
         </div>
         <div>
           <img 
             src="/images/corazon_de_rosas.jpeg" 
             alt="Imagen 3" 
-            className="w-full max-h-[400px] md:max-h-[820px] rounded-lg"
+            className="w-full max-h-[180px] md:max-h-[820px] rounded-lg"
           />
         </div>
         <div>
           <img 
             src="/images/bucket.png" 
             alt="Imagen 4" 
-            className="w-full max-h-[600px] md:max-h-[820px] rounded-lg"
+            className="w-full max-h-[180px] md:max-h-[820px] rounded-lg"
           />
         </div>
       </SlickSlider>

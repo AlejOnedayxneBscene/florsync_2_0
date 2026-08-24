@@ -14,9 +14,9 @@ const Button = ({
       disabled={isDisabled}
       onClick={!isDisabled ? onClick : undefined}
       className={`
-        w-[400px]
-        h-[70px]
-        text-[30px]
+        w-full max-w-[400px]
+        h-[50px] md:h-[70px]
+        text-[18px] md:text-[30px]
         py-2
         font-semibold
         transition

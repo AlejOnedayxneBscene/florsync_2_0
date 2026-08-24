@@ -12,14 +12,14 @@ export default function Input({ type, name, ...props }) {
 
 
   return (
-    <div className="relative w-[400px]">
+    <div className="relative w-full max-w-[400px]">
       <input
         {...props}
         name={name}
         type={inputType}
         className="
           w-full
-          h-[70px]
+          h-[50px] md:h-[70px]
           border
           border-black
           rounded-md
@@ -33,8 +33,8 @@ export default function Input({ type, name, ...props }) {
           text-black
           bg-[#E5E5E5]
           text-center
-          text-[30px]
-          placeholder:text-[30px]
+          text-[16px] md:text-[30px]
+          placeholder:text-[16px] md:placeholder:text-[30px]
           placeholder:text-gray-500
         "
         style={{ fontFamily: '"Jockey One", sans-serif' }}

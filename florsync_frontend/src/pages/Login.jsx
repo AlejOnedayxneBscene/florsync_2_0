@@ -68,14 +68,14 @@ const handleSubmit = async (e, setError, setFieldError) => {
 
   return (
     <LoginContainer>
-      <div className="flex flex-col md:flex-row w-full h-full gap-4">
+      <div className="flex flex-col md:flex-row w-full h-full gap-2 md:gap-4">
         {/* Left column: slider */}
-        <div className="w-full md:w-[55%] h-full max-h-full overflow-hidden rounded-lg">
+        <div className="w-full md:w-[55%] h-auto md:h-full max-h-full overflow-hidden rounded-lg">
           <Carousel />
         </div>
 
         {/* Right column: form */}
-        <div className="w-full md:w-[45%] flex justify-center items-center overflow-auto">
+        <div className="w-full md:w-[45%] flex justify-center items-center overflow-auto px-2 md:px-0">
           <LoginForms
             formData={formData}
             handleChange={handleChange}
