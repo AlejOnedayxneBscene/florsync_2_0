@@ -29,7 +29,7 @@ export default function LoginContainer({ children }) {
     p-4
     gap-3
     shadow-xl
-    w-[95vw] min-w-[320px] max-w-[1600px]
+    w-[95vw] max-w-[1600px]
     min-h-[90vh] h-auto md:h-[90vh]
   "
 >

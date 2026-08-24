@@ -22,7 +22,7 @@ export default function AppLayout() {
             flex-1
             transition-all duration-300
             pt-16
-            ${open ? "ml-64" : "ml-0"}
+            ${open ? "ml-0 md:ml-64" : "ml-0"}
           `}
         >
           {/* Contenido */}

@@ -15,8 +15,8 @@ export default function TopProductsChart({ products }) {
 
   return (
     <div className="bg-white p-4 rounded-xl shadow">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-lg font-semibold">Top 5 Productos</h3>
+      <div className="flex flex-wrap items-center justify-between mb-4 gap-2">
+        <h3 className="text-base md:text-lg font-semibold">Top 5 Productos</h3>
         <div className="flex gap-2">
           <button
             onClick={() => setModo("vendidos")}
@@ -48,7 +48,7 @@ export default function TopProductsChart({ products }) {
           margin={{ left: 20 }}
         >
           <XAxis type="number" />
-          <YAxis type="category" dataKey="nombre" width={120} />
+          <YAxis type="category" dataKey="nombre" width={window.innerWidth < 768 ? 80 : 120} tick={{ fontSize: window.innerWidth < 768 ? 11 : 12 }} />
           <Tooltip formatter={format} />
           <Bar dataKey={dataKey} fill="#4f46e5" radius={[0, 6, 6, 0]} />
         </BarChart>

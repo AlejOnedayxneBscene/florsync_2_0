@@ -62,7 +62,7 @@ const filteredItems = menuItems
 
       <aside
         ref={ref}
-        className={`fixed top-14 left-0 h-[calc(100%-3.5rem)] w-64
+        className={`fixed top-14 left-0 h-[calc(100%-3.5rem)] w-full md:w-64
         bg-gradient-to-br from-[#032221] via-[#044A45] to-[#021716]
         text-white p-4 z-40
         transform transition-transform duration-300

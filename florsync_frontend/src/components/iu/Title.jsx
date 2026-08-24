@@ -4,7 +4,7 @@ function Title({ text, className = "", ...rest }) {
       className={`
         font-bold
         text-center
-        text-[32px] md:text-[80px]
+        text-xl md:text-[80px]
         p-2
         text-white
         tracking-wide

@@ -19,7 +19,7 @@ export default function SummaryCards({ summary, view }) {
           key={i}
           className="bg-[#0d3b2e] text-white rounded-xl px-6 py-5 flex items-center gap-6 flex-1"
         >
-          <span className="text-5xl font-bold leading-none text-white">
+          <span className="text-2xl md:text-5xl font-bold leading-none text-white">
             {card.value}
           </span>
           <span className="text-sm text-white/60 leading-snug max-w-[120px]">

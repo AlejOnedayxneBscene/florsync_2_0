@@ -279,7 +279,7 @@ const Ventas = () => {
             </div>
             <div className="text-right mt-2 lg:mt-0 lg:ml-4">
               <div className="text-xl font-semibold text-gray-700">Total</div>
-              <span className="text-5xl font-extrabold text-green-600">
+              <span className="text-2xl md:text-5xl font-extrabold text-green-600">
                 {new Intl.NumberFormat("es-CO", { style: "currency", currency: "COP", minimumFractionDigits: 0 }).format(
                   carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0)
                 )}

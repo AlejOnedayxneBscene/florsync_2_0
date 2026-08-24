@@ -50,7 +50,7 @@ export default function TopBar({ toggleSidebar }) {
           <Menu size={26} />
         </button>
 
-        <h1 className="text-lg font-semibold">{title}</h1>
+        <h1 className="text-lg font-semibold truncate">{title}</h1>
       </div>
 
       {/* DERECHA - USUARIO */}

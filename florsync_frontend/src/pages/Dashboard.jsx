@@ -43,7 +43,7 @@ export default function Dashboard() {
     <div className="p-6 space-y-6">
       <h1 className="text-3xl font-bold">DASHBOARD</h1>
 
-      <div className="flex items-center gap-6">
+      <div className="flex flex-wrap items-center gap-3 md:gap-6">
         <Filters view={view} setView={handleSetView} />
         <div className="flex items-center gap-2">
           <button
@@ -58,12 +58,12 @@ export default function Dashboard() {
         </div>
       </div>
 
-      <div className="grid grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 md:gap-6">
         <ProfileCard nombre={nombre} />
         <SummaryCards summary={data.summary} />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
         <SalesChart data={data} view={view} />
         <TopProductsChart products={data.top_products} />
       </div>
