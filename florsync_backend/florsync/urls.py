@@ -16,9 +16,9 @@ urlpatterns = [
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 
     # Otros módulos
-    path('productos/', include('productos.urls')),
-    path('clientes/', include('clientes.urls')),
-    path('ventas/', include('ventas.urls')),
-    path('auditoria/', include('auditoria.urls')),
+    path('api/productos/', include('productos.urls')),
+    path('api/clientes/', include('clientes.urls')),
+    path('api/ventas/', include('ventas.urls')),
+    path('api/auditoria/', include('auditoria.urls')),
     
 ]

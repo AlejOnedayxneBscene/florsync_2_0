@@ -32,7 +32,7 @@ import os
 
 ALLOWED_HOSTS = os.getenv(
     'ALLOWED_HOSTS',
-    'localhost,127.0.0.1'
+    'localhost,127.0.0.1,florsync-2-0-1.onrender.com'
 ).split(',')
 
 
@@ -149,9 +149,6 @@ USE_I18N = True
 USE_TZ = True
 
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3000",  # Dirección del frontend de React
-]
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.1/howto/static-files/
@@ -183,6 +180,7 @@ STATICFILES_DIRS = []
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "https://florsync-2-0-1.vercel.app",
 ]
 
 CORS_ALLOWED_ORIGIN_REGEXES = [
@@ -193,7 +191,9 @@ CORS_ALLOW_CREDENTIALS = True
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:5173",
+    "https://florsync-2-0-1.vercel.app",
 ]
+
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 REST_FRAMEWORK = {
@@ -209,5 +209,3 @@ SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(minutes=30),  # ✅ expira en 30 min
     "REFRESH_TOKEN_LIFETIME": timedelta(days=1),
 }
-
-CORS_ALLOW_CREDENTIALS = True
